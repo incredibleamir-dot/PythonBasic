@@ -29,8 +29,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/python-smallbasic"
-Repository = "https://github.com/yourusername/python-smallbasic.git"
+Homepage = "https://github.com/incredibleamir-dot/PythonBasic"
+Repository = "https://github.com/incredibleamir-dot/PythonBasic.git"
 
 [tool.setuptools.packages.find]
 include = ["smallbasic*"]

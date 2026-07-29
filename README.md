@@ -1,5 +1,9 @@
 # Python Small Basic
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)]()
+
 A Python library that mirrors the [Microsoft Small Basic](https://smallbasic-publicwebsite.azurewebsites.net/) API, making it easy for beginners — especially kids — to learn programming with a familiar, friendly interface. Everything runs using **Python's standard library only** (no external dependencies).
 
 > **Platform:** Windows only (uses `tkinter` for GUI, `winsound` for Sound, `ctypes` for system info).
@@ -104,8 +108,8 @@ pip install python-smallbasic
 ### Option 2: From source
 
 ```bash
-git clone https://github.com/yourusername/python-smallbasic.git
-cd python-smallbasic
+git clone https://github.com/incredibleamir-dot/PythonBasic.git
+cd PythonBasic
 pip install -e .
 ```
 
@@ -168,7 +172,7 @@ GraphicsWindow.MouseDown = on_click
 
 ## Demos
 
-The `demos/` folder contains 10 runnable examples covering all features:
+The `demos/` folder contains 11 runnable examples covering all features:
 
 | # | File | Description |
 |---|------|-------------|
@@ -178,10 +182,11 @@ The `demos/` folder contains 10 runnable examples covering all features:
 | 4 | `04_graphics_shapes.py` | Rectangles, ellipses, triangles, lines, text |
 | 5 | `05_turtle_drawing.py` | Turtle square, triangle, star, spiral |
 | 6 | `06_controls_gui.py` | TextBox, Button, MultiLine Text |
-| 7 | `07_network_rest.py` | HTTP GET, JSON, DownloadText |
+| 7 | `07_network_rest.py` | HTTP GET, JSON, GetWebPageContents |
 | 8 | `08_file_operations.py` | Read/write/append text files |
 | 9 | `09_clock_timer.py` | Clock time/date + Timer events |
 | 10 | `10_all_features.py` | Mouse drawing + keyboard events + controls |
+| 11 | `11_loops_conditions_functions.py` | For/while loops, if/else, functions |
 
 Run any demo with:
 
@@ -301,7 +306,7 @@ python demos/04_graphics_shapes.py
 |---|---|
 | `Get(url)` | HTTP GET (returns JSON) |
 | `Post(url, data)` | HTTP POST (sends JSON, returns JSON) |
-| `DownloadText(url)` | Download raw text |
+| `GetWebPageContents(url)` | Download raw text |
 | `DownloadFile(url, path)` | Download binary file |
 
 ### More Objects

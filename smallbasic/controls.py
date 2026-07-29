@@ -155,6 +155,20 @@ class Controls:
         return name
 
     @classmethod
+    def AddMultiLineText(cls, left: int, top: int) -> str:
+        """
+        Alias for AddMultiLineTextBox.
+        
+        Args:
+            left: The x co-ordinate of the text box.
+            top: The y co-ordinate of the text box.
+            
+        Returns:
+            The name of the text box that was added.
+        """
+        return cls.AddMultiLineTextBox(left, top)
+
+    @classmethod
     def GetTextBoxText(cls, textbox_name: str) -> str:
         """
         Gets the current text of the specified TextBox.
