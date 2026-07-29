@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python-smallbasic"
+version = "1.0.0"
+description = "A Python library inspired by Microsoft Small Basic for teaching programming to beginners"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Python Small Basic Contributors"}
+]
+requires-python = ">=3.10"
+keywords = ["smallbasic", "education", "beginners", "teaching", "kids"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Education",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/python-smallbasic"
+Repository = "https://github.com/yourusername/python-smallbasic.git"
+
+[tool.setuptools.packages.find]
+include = ["smallbasic*"]

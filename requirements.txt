@@ -1,0 +1,6 @@
+# Python Small Basic - Dependencies
+# No external packages required for core functionality.
+# All features use Python's standard library only.
+#
+# Optional:
+# Pillow>=10.0.0  # For ImageList.LoadImage (PNG, JPEG, etc.)
