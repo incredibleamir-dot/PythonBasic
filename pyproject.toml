@@ -1,17 +1,17 @@
 [build-system]
-requires = ["setuptools>=68.0"]
+requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "python-smallbasic"
 version = "1.2.0"
 description = "A Python library inspired by Microsoft Small Basic for teaching programming to beginners"
-readme = "README.md"
-license = {text = "MIT"}
-authors = [
-    {name = "Amir Arshad E: incredibleamir@gmail.com"}
-]
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { file = "LICENSE" }
+authors = [ { name = "Amir Arshad", email = "incredibleamir@gmail.com" } ]
+maintainers = [ { name = "Python Small Basic Contributors" } ]
 requires-python = ">=3.10"
+dependencies = []
 keywords = ["smallbasic", "education", "beginners", "teaching", "kids"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -31,6 +31,28 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/incredibleamir-dot/PythonBasic"
 Repository = "https://github.com/incredibleamir-dot/PythonBasic.git"
+"Bug Tracker" = "https://github.com/incredibleamir-dot/PythonBasic/issues"
+Documentation = "https://github.com/incredibleamir-dot/PythonBasic#readme"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "black",
+  "ruff",
+  "mypy",
+  "pre-commit",
+]
+docs = [
+  "sphinx",
+  "sphinx-rtd-theme",
+]
 
 [tool.setuptools.packages.find]
-include = ["smallbasic*"]
+# If you use a top-level package layout (not src/), keep packages under the repository root.
+include = ["smallbasic", "smallbasic.*"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"smallbasic" = ["data/*", "*.txt"]
