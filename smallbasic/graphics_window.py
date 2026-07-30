@@ -28,6 +28,7 @@ class _TkWindow:
     _last_text: str = ""
     _mouse_x: int = 0
     _mouse_y: int = 0
+    _shown: bool = False
 
     KeyDown: Optional[Callable] = None
     KeyUp: Optional[Callable] = None
@@ -70,16 +71,24 @@ class _TkWindow:
             cls._canvas.bind("<ButtonRelease-1>", cls._on_mouse_up)
             cls._canvas.bind("<Motion>", cls._on_mouse_move)
             cls._canvas.focus_set()
-        cls._root.deiconify()
-        cls._root.title(cls._title)
-        cls._root.geometry(f"{cls._width}x{cls._height}+{cls._left}+{cls._top}")
-        cls._root.resizable(cls._can_resize, cls._can_resize)
-        cls._root.update()
+        if not cls._shown:
+            cls._root.deiconify()
+            cls._root.title(cls._title)
+            cls._root.geometry(f"{cls._width}x{cls._height}+{cls._left}+{cls._top}")
+            cls._root.resizable(cls._can_resize, cls._can_resize)
+            cls._root.update()
+            cls._shown = True
 
     @classmethod
     def hide(cls):
         if cls._root:
             cls._root.withdraw()
+            cls._shown = False
+
+    @classmethod
+    def wait_for_close(cls):
+        if cls._root:
+            cls._root.mainloop()
 
     @classmethod
     def _on_key_down(cls, event):
@@ -215,6 +224,10 @@ class GraphicsWindow(metaclass=_GWMeta):
     @classmethod
     def Hide(cls) -> None:
         _TkWindow.hide()
+
+    @classmethod
+    def Wait(cls) -> None:
+        _TkWindow.wait_for_close()
 
     @classmethod
     def Clear(cls) -> None:

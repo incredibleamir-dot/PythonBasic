@@ -1,23 +1,23 @@
 import math
+import sys
+import time
 from smallbasic._utils import classproperty, _PropSetMeta
 from smallbasic.graphics_window import _TkWindow, GraphicsWindow
 
 
-class Turtle(metaclass=_PropSetMeta):
-    """
-    Provides Logo-like functionality to draw shapes by controlling
-    a turtle that moves and draws on the Graphics Window.
-    
-    Usage:
-        Turtle.Show()
-        Turtle.Speed = 5
-        Turtle.Move(100)
-        Turtle.Turn(90)
-        Turtle.Move(100)
-        Turtle.PenUp()
-        Turtle.Move(50)
-    """
+def _flush_display():
+    if not _TkWindow._root:
+        return
+    _TkWindow._root.update_idletasks()
+    if sys.platform == 'win32':
+        import ctypes.wintypes
+        hwnd = ctypes.wintypes.HWND(_TkWindow._root.winfo_id())
+        ctypes.windll.user32.UpdateWindow(hwnd)
+    else:
+        _TkWindow._root.update()
 
+
+class Turtle(metaclass=_PropSetMeta):
     _speed: int = 5
     _angle: float = 0.0
     _x: float = 320.0
@@ -29,7 +29,8 @@ class Turtle(metaclass=_PropSetMeta):
 
     @classmethod
     def _ensure_window(cls):
-        GraphicsWindow.Show()
+        if _TkWindow._canvas is None:
+            GraphicsWindow.Show()
         if cls._turtle_dot_id is None and _TkWindow._canvas:
             r = 5
             cls._turtle_dot_id = _TkWindow._canvas.create_oval(
@@ -41,13 +42,11 @@ class Turtle(metaclass=_PropSetMeta):
                 fill="Red", width=2
             )
             cls._draw_arrow()
-            _TkWindow.update()
 
     @classmethod
     def _draw_arrow(cls):
         if not _TkWindow._canvas or cls._turtle_dot_id is None:
             return
-        cls._ensure_window()
         angle_rad = math.radians(cls._angle)
         length = 15
         ex = cls._x + length * math.cos(angle_rad)
@@ -61,10 +60,6 @@ class Turtle(metaclass=_PropSetMeta):
 
     @classproperty
     def Speed(cls) -> int:
-        """
-        Gets or sets the speed of the turtle (1 to 10).
-        10 = instant movement.
-        """
         return cls._speed
 
     @Speed.setter
@@ -73,10 +68,6 @@ class Turtle(metaclass=_PropSetMeta):
 
     @classproperty
     def Angle(cls) -> float:
-        """
-        Gets or sets the current angle of the turtle in degrees.
-        0 = facing right, 90 = facing up.
-        """
         return cls._angle
 
     @Angle.setter
@@ -86,7 +77,6 @@ class Turtle(metaclass=_PropSetMeta):
 
     @classproperty
     def X(cls) -> float:
-        """Gets or sets the X location of the Turtle."""
         return cls._x
 
     @X.setter
@@ -97,7 +87,6 @@ class Turtle(metaclass=_PropSetMeta):
 
     @classproperty
     def Y(cls) -> float:
-        """Gets or sets the Y location of the Turtle."""
         return cls._y
 
     @Y.setter
@@ -120,7 +109,7 @@ class Turtle(metaclass=_PropSetMeta):
         if cls._arrow_line_id and _TkWindow._canvas:
             _TkWindow._canvas.delete(cls._arrow_line_id)
             cls._arrow_line_id = None
-        _TkWindow.update()
+        _flush_display()
 
     @classmethod
     def PenDown(cls) -> None:
@@ -146,15 +135,11 @@ class Turtle(metaclass=_PropSetMeta):
                     fill=_TkWindow._pen_color,
                     width=_TkWindow._pen_width
                 )
-            if cls._visible and cls._turtle_dot_id:
-                canvas.coords(cls._turtle_dot_id,
-                              cls._x - 5, cls._y - 5,
-                              cls._x + 5, cls._y + 5)
             cls._draw_arrow()
-            _TkWindow.update()
+            _flush_display()
             if cls._speed < 10:
-                import time
-                time.sleep((10 - cls._speed) * 0.01)
+                delay_ms = max(5, (10 - cls._speed) * 10)
+                time.sleep(delay_ms / 1000.0)
 
     @classmethod
     def MoveTo(cls, x: float, y: float) -> None:

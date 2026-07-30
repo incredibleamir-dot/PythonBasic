@@ -54,4 +54,3 @@ for i in range(20):
 
 Turtle.Hide()
 GraphicsWindow.DrawText(20, 10, "Turtle drawing complete!")
-GraphicsWindow.Wait()

@@ -217,6 +217,7 @@ python demos/04_graphics_shapes.py
 | Method / Property | Description |
 |---|---|
 | `Show()` | Display the window |
+| `Wait()` | Keep the window open until closed |
 | `DrawRectangle(x, y, w, h)` | Outline rectangle |
 | `FillRectangle(x, y, w, h)` | Filled rectangle |
 | `DrawEllipse(x, y, w, h)` | Outline ellipse |
