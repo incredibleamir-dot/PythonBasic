@@ -9,7 +9,7 @@ description = "A Python library inspired by Microsoft Small Basic for teaching p
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Python Small Basic Contributors"}
+    {name = "Amir Arshad E: incredibleamir@gmail.com"}
 ]
 requires-python = ">=3.10"
 keywords = ["smallbasic", "education", "beginners", "teaching", "kids"]
