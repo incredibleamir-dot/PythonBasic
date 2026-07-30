@@ -1,3 +1,4 @@
+import math
 from smallbasic.graphics_window import _TkWindow
 from smallbasic._utils import classproperty
 
@@ -222,49 +223,61 @@ class Shapes:
     def Move(cls, shape_name: str, x: int, y: int) -> None:
         """
         Moves the shape to a new position.
-        
+
         Args:
             shape_name: The name of the shape.
             x: The x co-ordinate.
             y: The y co-ordinate.
         """
         shape = cls._shapes.get(shape_name)
-        if not shape or not shape.canvas_id or not _TkWindow._canvas:
+        if not shape:
             return
-        canvas = _TkWindow._canvas
-        if shape.shape_type in ("text", "image"):
-            canvas.coords(shape.canvas_id, x, y)
-        else:
-            dx = x - shape.x
-            dy = y - shape.y
-            current = canvas.coords(shape.canvas_id)
-            if current:
-                new_coords = tuple(
-                    current[i] + (dx if i % 2 == 0 else dy)
-                    for i in range(len(current))
-                )
-                canvas.coords(shape.canvas_id, *new_coords)
+        if shape.canvas_id and _TkWindow._canvas:
+            canvas = _TkWindow._canvas
+            if shape.shape_type in ("text", "image"):
+                canvas.coords(shape.canvas_id, x, y)
+            else:
+                dx = x - shape.x
+                dy = y - shape.y
+                current = canvas.coords(shape.canvas_id)
+                if current:
+                    new_coords = tuple(
+                        current[i] + (dx if i % 2 == 0 else dy)
+                        for i in range(len(current))
+                    )
+                    canvas.coords(shape.canvas_id, *new_coords)
+            _TkWindow.update()
         shape.x, shape.y = x, y
-        _TkWindow.update()
 
     @classmethod
     def Rotate(cls, shape_name: str, angle: int) -> None:
         """
         Rotates the shape to the specified angle.
-        
+
         Args:
             shape_name: The name of the shape.
             angle: The angle in degrees.
         """
         shape = cls._shapes.get(shape_name)
-        if shape and shape.canvas_id and _TkWindow._canvas:
-            shape.angle = angle
-            bbox = _TkWindow._canvas.bbox(shape.canvas_id)
-            if bbox:
-                cx = (bbox[0] + bbox[2]) / 2
-                cy = (bbox[1] + bbox[3]) / 2
-                _TkWindow._canvas.coords(shape.canvas_id, bbox[0], bbox[1])
-                _TkWindow.update()
+        if not shape:
+            return
+        shape.angle = angle
+        if shape.canvas_id and _TkWindow._canvas:
+            coords = list(shape.orig_coords)
+            if len(coords) < 4:
+                return
+            cx = sum(coords[i] for i in range(0, len(coords), 2)) / (len(coords) // 2)
+            cy = sum(coords[i] for i in range(1, len(coords), 2)) / (len(coords) // 2)
+            rad = math.radians(angle)
+            new_coords = []
+            for i in range(0, len(coords), 2):
+                dx = coords[i] - cx
+                dy = coords[i + 1] - cy
+                nx = dx * math.cos(rad) - dy * math.sin(rad) + cx
+                ny = dx * math.sin(rad) + dy * math.cos(rad) + cy
+                new_coords.extend([nx, ny])
+            _TkWindow._canvas.coords(shape.canvas_id, *new_coords)
+            _TkWindow.update()
 
     @classmethod
     def Zoom(cls, shape_name: str, scale_x: float, scale_y: float) -> None:
@@ -376,24 +389,26 @@ class Shapes:
     def HideShape(cls, shape_name: str) -> None:
         """
         Hides an already added shape.
-        
+
         Args:
             shape_name: The name of the shape.
         """
         shape = cls._shapes.get(shape_name)
-        if shape and shape.canvas_id and _TkWindow._canvas:
-            _TkWindow._canvas.itemconfig(shape.canvas_id, state="hidden")
+        if shape:
             shape.visible = False
+            if shape.canvas_id and _TkWindow._canvas:
+                _TkWindow._canvas.itemconfig(shape.canvas_id, state="hidden")
 
     @classmethod
     def ShowShape(cls, shape_name: str) -> None:
         """
         Shows a previously hidden shape.
-        
+
         Args:
             shape_name: The name of the shape.
         """
         shape = cls._shapes.get(shape_name)
-        if shape and shape.canvas_id and _TkWindow._canvas:
-            _TkWindow._canvas.itemconfig(shape.canvas_id, state="normal")
+        if shape:
             shape.visible = True
+            if shape.canvas_id and _TkWindow._canvas:
+                _TkWindow._canvas.itemconfig(shape.canvas_id, state="normal")

@@ -59,7 +59,7 @@ class Mouse:
     def IsLeftButtonDown(cls) -> bool:
         """Gets whether the left mouse button is pressed."""
         try:
-            return ctypes.windll.user32.GetAsyncKeyState(0x01) & 0x8000 != 0
+            return (ctypes.windll.user32.GetAsyncKeyState(0x01) & 0x8000) != 0
         except Exception:
             return False
 
@@ -67,7 +67,7 @@ class Mouse:
     def IsRightButtonDown(cls) -> bool:
         """Gets whether the right mouse button is pressed."""
         try:
-            return ctypes.windll.user32.GetAsyncKeyState(0x02) & 0x8000 != 0
+            return (ctypes.windll.user32.GetAsyncKeyState(0x02) & 0x8000) != 0
         except Exception:
             return False
 

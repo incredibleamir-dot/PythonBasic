@@ -1,6 +1,7 @@
 import winsound
 import threading
 import time
+import os
 
 
 class Sound:
@@ -13,6 +14,10 @@ class Sound:
         Sound.PlayMusic("O5 C8 C8 G8 G8 A8 A8 G4")
         Sound.Play("C:/music/track.mp3")
     """
+
+    _current_file: str = ""
+    _pause_event: threading.Event = threading.Event()
+    _pause_event.set()
 
     @classmethod
     def PlayClick(cls) -> None:
@@ -95,10 +100,11 @@ class Sound:
         Args:
             file_path: Path to audio file (wav, mp3, wma).
         """
+        cls._current_file = file_path
+        cls._pause_event.set()
         if file_path.lower().endswith('.wav'):
             winsound.PlaySound(file_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
         else:
-            import os
             if os.path.exists(file_path):
                 os.startfile(file_path)
 
@@ -110,28 +116,44 @@ class Sound:
         Args:
             file_path: Path to audio file.
         """
+        cls._current_file = file_path
+        cls._pause_event.set()
         if file_path.lower().endswith('.wav'):
             winsound.PlaySound(file_path, winsound.SND_FILENAME | winsound.SND_SYNC)
         else:
             cls.Play(file_path)
-            time.sleep(2)
+            if os.path.exists(file_path):
+                try:
+                    size = os.path.getsize(file_path)
+                    estimated_duration = max(1, size / 16000)
+                    time.sleep(min(estimated_duration, 30))
+                except Exception:
+                    time.sleep(5)
 
     @classmethod
-    def Pause(cls, file_path: str) -> None:
+    def Pause(cls) -> None:
         """
-        Pauses playback of an audio file.
-        
-        Args:
-            file_path: Path to audio file.
+        Pauses playback of the current audio.
+        Call Play() or PlayAndWait() to resume.
         """
+        cls._pause_event.clear()
         winsound.PlaySound(None, winsound.SND_PURGE)
 
     @classmethod
-    def Stop(cls, file_path: str) -> None:
+    def Resume(cls) -> None:
         """
-        Stops playback of an audio file.
-        
-        Args:
-            file_path: Path to audio file.
+        Resumes playback from a paused state.
         """
+        if not cls._pause_event.is_set():
+            cls._pause_event.set()
+            if cls._current_file:
+                cls.Play(cls._current_file)
+
+    @classmethod
+    def Stop(cls) -> None:
+        """
+        Stops playback of the current audio.
+        """
+        cls._pause_event.set()
+        cls._current_file = ""
         winsound.PlaySound(None, winsound.SND_PURGE)

@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-07-30
+
+### Fixed
+
+- **CRITICAL: `Mouse.IsLeftButtonDown` / `IsRightButtonDown` always returned wrong result** — operator precedence bug where `!=` had higher precedence than `&`, causing the button state check to test the wrong bit. Added parentheses to fix: `(GetAsyncKeyState(...) & 0x8000) != 0`
+- **`GraphicsWindow.GetPixel()` returned pen color instead of actual pixel color** — now uses `find_closest()` and `itemcget()` to read the color of the nearest canvas item
+- **`Shapes.Rotate()` collapsed shapes to a single point** — replaced broken `coords()` call with proper 2D rotation matrix math using `math.cos`/`math.sin`
+- **`Dictionary` translation methods didn't translate** — `_translate()` was a stub that called `_fetch_definition()`. Now uses the MyMemory translation API (`api.mymemory.translated.net`) for actual translations
+- **`Sound.Pause()` stopped playback instead of pausing** — now uses a `threading.Event` to track pause state, with a separate `Resume()` method to continue playback
+- **`Sound.PlayAndWait()` for non-WAV files used arbitrary `time.sleep(2)`** — now estimates duration from file size for a more accurate wait time
+- **`Sound.Pause()` / `Stop()` required an unused `file_path` parameter** — removed the parameter since it was never used internally
+- **`File.GetTemporaryFilePath()` returned `tempfile.gettempdir()` (a directory) on error** — now returns empty string to match the convention used elsewhere
+- **`Timer` silently swallowed exceptions in tick callbacks** — now logs errors via `logging.getLogger(__name__)` instead of bare `pass`
+- **`GraphicsWindow` event callbacks were called without the event argument** — `KeyDown`, `KeyUp`, `MouseDown`, `MouseUp`, `MouseMove`, `TextInput` now pass the event object to callbacks via `lambda e=event: callback(e)`
+
+### Added
+
+- `Sound.Resume()` — resumes playback from a paused state
+- `Sound._current_file` — tracks the current file for pause/resume
+- `Sound._pause_event` — threading event for pause state management
+- Comprehensive test suite for all bug fixes
+
+### Changed
+
+- Updated README with accurate API documentation for all objects
+- Updated "What It Cannot Do" section to reflect implemented features
+- Removed "Desktop.SetWallpaper — Not implemented" (it was already implemented)
+- Removed "Sound.PlayAndWait — Not implemented" (it was already implemented)
+- Updated API tables with complete method/property listings
+
 ## [1.0.0] - 2026-07-30
 
 ### Added

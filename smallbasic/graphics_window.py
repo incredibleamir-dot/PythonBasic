@@ -94,40 +94,40 @@ class _TkWindow:
     def _on_key_down(cls, event):
         cls._last_key = event.keysym
         if cls.KeyDown and cls._root:
-            cls._root.after_idle(cls.KeyDown)
+            cls._root.after_idle(lambda e=event: cls.KeyDown(e))
 
     @classmethod
     def _on_key_up(cls, event):
         cls._last_key = event.keysym
         if cls.KeyUp and cls._root:
-            cls._root.after_idle(cls.KeyUp)
+            cls._root.after_idle(lambda e=event: cls.KeyUp(e))
 
     @classmethod
     def _on_key_press(cls, event):
         cls._last_text = event.char
         if cls.TextInput and cls._root:
-            cls._root.after_idle(cls.TextInput)
+            cls._root.after_idle(lambda e=event: cls.TextInput(e))
 
     @classmethod
     def _on_mouse_down(cls, event):
         cls._mouse_x = event.x
         cls._mouse_y = event.y
         if cls.MouseDown and cls._root:
-            cls._root.after_idle(cls.MouseDown)
+            cls._root.after_idle(lambda e=event: cls.MouseDown(e))
 
     @classmethod
     def _on_mouse_up(cls, event):
         cls._mouse_x = event.x
         cls._mouse_y = event.y
         if cls.MouseUp and cls._root:
-            cls._root.after_idle(cls.MouseUp)
+            cls._root.after_idle(lambda e=event: cls.MouseUp(e))
 
     @classmethod
     def _on_mouse_move(cls, event):
         cls._mouse_x = event.x
         cls._mouse_y = event.y
         if cls.MouseMove and cls._root:
-            cls._root.after_idle(cls.MouseMove)
+            cls._root.after_idle(lambda e=event: cls.MouseMove(e))
 
     @classmethod
     def update(cls):
@@ -384,7 +384,18 @@ class GraphicsWindow(metaclass=_GWMeta):
 
     @classmethod
     def GetPixel(cls, x: int, y: int) -> str:
-        return _TkWindow._pen_color
+        _TkWindow.ensure()
+        if _TkWindow._canvas:
+            items = _TkWindow._canvas.find_closest(x, y)
+            if items:
+                item_id = items[0]
+                try:
+                    color = _TkWindow._canvas.itemcget(item_id, "fill")
+                    if color and color != "":
+                        return color
+                except Exception:
+                    pass
+        return _TkWindow._bg_color
 
     @classmethod
     def GetRandomColor(cls) -> str:

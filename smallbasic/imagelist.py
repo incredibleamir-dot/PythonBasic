@@ -35,7 +35,7 @@ class ImageList:
             tk_img = ImageTk.PhotoImage(pil_img)
             cls._images[name] = pil_img
             cls._tk_images[name] = tk_img
-        except ImportError:
+        except Exception:
             try:
                 tk_img = tk.PhotoImage(file=file_path)
                 cls._tk_images[name] = tk_img

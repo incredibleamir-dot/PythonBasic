@@ -1,7 +1,10 @@
+import logging
 import threading
 import time
 from typing import Optional, Callable
 from smallbasic._utils import classproperty, _PropSetMeta
+
+logger = logging.getLogger(__name__)
 
 
 class Timer(metaclass=_PropSetMeta):
@@ -32,7 +35,7 @@ class Timer(metaclass=_PropSetMeta):
                 try:
                     cls._tick()
                 except Exception as e:
-                    pass
+                    logger.error("Timer tick callback raised an exception: %s", e)
             time.sleep(max(0.01, cls.Interval / 1000.0))
 
     @classmethod

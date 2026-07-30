@@ -284,7 +284,7 @@ class File:
                 return f.name
         except Exception as e:
             cls.LastError = str(e)
-            return tempfile.gettempdir()
+            return ""
 
     @classmethod
     def GetSettingsFilePath(cls) -> str:

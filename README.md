@@ -21,6 +21,7 @@ A Python library that mirrors the [Microsoft Small Basic](https://smallbasic-pub
 - [Demos](#demos)
 - [API Overview](#api-overview)
 - [Differences from Microsoft Small Basic](#differences-from-microsoft-small-basic)
+- [Changelog](#changelog)
 - [License](#license)
 - [Contributing](#contributing)
 
@@ -62,16 +63,16 @@ TextWindow.WriteLine("Hello World")
 | **GraphicsWindow** | Drawing shapes (rectangles, ellipses, triangles, lines, text), colors, window controls |
 | **Turtle**       | Logo-style turtle graphics with Move, Turn, PenUp/PenDown, Speed, Show/Hide |
 | **Controls**     | Real tkinter widgets: Button, TextBox, MultiLine Text                       |
-| **Mouse**        | Get cursor position relative to the screen                                  |
-| **Shapes**       | Animate and move shapes on the GraphicsWindow canvas                        |
-| **Sound**        | Play tones/melodies (via `winsound`)                                        |
+| **Mouse**        | Get cursor position relative to the screen, button state detection          |
+| **Shapes**       | Animate, move, rotate, zoom shapes on the GraphicsWindow canvas             |
+| **Sound**        | Play tones/melodies (via `winsound`), pause/resume support                  |
 | **Clock**        | Current date, time, weekday, milliseconds                                   |
-| **Timer**        | Interval-based event callbacks                                              |
-| **Network**      | HTTP GET, POST, JSON, file downloads                                        |
-| **File**         | Read, write, append text files                                              |
-| **Desktop**      | Screen dimensions, available drives                                         |
+| **Timer**        | Interval-based event callbacks with pause/resume                            |
+| **Network**      | HTTP GET, POST, PUT, DELETE, PATCH, JSON, file downloads                    |
+| **File**         | Read, write, append, copy, delete text files and directories                |
+| **Desktop**      | Screen dimensions, wallpaper setting                                        |
 | **Math**         | Trigonometry, random numbers, min/max/sum/average (with `*args`), rounding |
-| **Dictionary**   | Key-value storage (Python dict wrapper)                                     |
+| **Dictionary**   | Online word definitions and translations (English to 8+ languages)          |
 | **Array**        | Indexed list operations                                                     |
 | **Stack**        | Push/pop operations                                                         |
 | **Program**      | Program.Delay, Program.End, argument access                                 |
@@ -85,15 +86,16 @@ TextWindow.WriteLine("Hello World")
 - **Fun with arguments** – `Math.Max(1, 2, 3, 4, 5)` (variadic `*args`), `TextWindow.WriteLine("a", "b", "c")`.
 - **Event-driven** – `KeyDown`, `KeyUp`, `MouseDown`, `MouseUp`, `MouseMove`, `ButtonClicked`, `Timer.Tick`.
 - **Full type hints** – Every function/method has typed parameters, return annotations, and docstrings.
+- **Shape rotation** – Proper 2D rotation using rotation matrices.
+- **Sound pause/resume** – Pause and resume audio playback.
+- **Translation support** – Dictionary methods that actually translate words using the MyMemory API.
 
 ## What It Cannot Do (Yet)
 
 - **Flickr** – The original Small Basic `Flickr` object is omitted because the Flickr API requires an API key and OAuth. No replacement is provided.
 - **ImageList.LoadImage** – Works with PIL (Pillow) if installed, or with tkinter's `.gif`/`.ppm` support only. Full image format support requires `pip install Pillow`.
-- **Sound.PlayAndWait** – Not implemented (plays asynchronously only).
 - **GraphicsWindow.MakeKeyFromTitle** / **GraphicsWindow.MakeKeyFromVisible** – Not implemented.
 - **Controls events** – `Controls.KeyTyped` is not implemented due to focus management complexity with real widgets.
-- **Desktop.SetWallpaper** – Not implemented (Windows policy restrictions).
 - **Multi-touch** – Not supported; only single mouse cursor.
 - **Linux/macOS** – This library is Windows-only (uses `winsound`, `ctypes` Windows APIs). Contributions for cross-platform support welcome.
 
@@ -152,6 +154,10 @@ GraphicsWindow.Show()
 GraphicsWindow.BrushColor = "Red"
 GraphicsWindow.FillEllipse(10, 10, 50, 50)
 
+# --- Rotate a shape ---
+rect = Shapes.AddRectangle(100, 50)
+Shapes.Rotate(rect, 45)  # Properly rotates the shape
+
 # --- Turtle ---
 Turtle.Show()
 Turtle.Move(100)
@@ -159,15 +165,29 @@ Turtle.Turn(90)
 Turtle.Move(50)
 
 # --- Keyboard / Mouse events ---
-def on_key():
-    TextWindow.WriteLine(f"Key pressed: {GraphicsWindow.LastKey}")
+def on_key(event):
+    TextWindow.WriteLine(f"Key pressed: {event.keysym}")
 
 GraphicsWindow.KeyDown = on_key
 
-def on_click():
-    TextWindow.WriteLine(f"Mouse at ({GraphicsWindow.MouseX}, {GraphicsWindow.MouseY})")
+def on_click(event):
+    TextWindow.WriteLine(f"Mouse at ({event.x}, {event.y})")
 
 GraphicsWindow.MouseDown = on_click
+
+# --- Sound with pause/resume ---
+Sound.Play("C:/music/track.wav")
+Program.Delay(2000)
+Sound.Pause()
+Program.Delay(1000)
+Sound.Resume()
+
+# --- Dictionary ---
+definition = Dictionary.GetDefinition("hello")
+TextWindow.WriteLine(definition)
+
+spanish = Dictionary.GetDefinitionEnglishToSpanish("hello")
+TextWindow.WriteLine(f"Spanish: {spanish}")
 ```
 
 ## Demos
@@ -204,6 +224,7 @@ python demos/04_graphics_shapes.py
 | `Write(...)` | Write text without newline |
 | `Read()` | Read a line of text |
 | `ReadNumber()` | Read a number |
+| `ReadKey()` | Read a single key press |
 | `Pause()` | Wait for ENTER key |
 | `Clear()` | Clear the window |
 | `ForegroundColor` | Text color (named) |
@@ -217,7 +238,9 @@ python demos/04_graphics_shapes.py
 | Method / Property | Description |
 |---|---|
 | `Show()` | Display the window |
+| `Hide()` | Hide the window |
 | `Wait()` | Keep the window open until closed |
+| `Clear()` | Clear canvas |
 | `DrawRectangle(x, y, w, h)` | Outline rectangle |
 | `FillRectangle(x, y, w, h)` | Filled rectangle |
 | `DrawEllipse(x, y, w, h)` | Outline ellipse |
@@ -226,15 +249,22 @@ python demos/04_graphics_shapes.py
 | `FillTriangle(x1,y1, x2,y2, x3,y3)` | Filled triangle |
 | `DrawLine(x1, y1, x2, y2)` | Line |
 | `DrawText(x, y, text)` | Text |
-| `Clear()` | Clear canvas |
+| `DrawBoundText(x, y, width, text)` | Word-wrapped text |
+| `DrawImage(name, x, y)` | Draw an image |
+| `DrawResizedImage(name, x, y, w, h)` | Draw a resized image |
+| `SetPixel(x, y, color)` | Set a single pixel |
+| `GetPixel(x, y)` | Get color at coordinates |
 | `GetColorFromRGB(r, g, b)` | Create color string |
 | `GetRandomColor()` | Random color string |
+| `ShowMessage(text, title)` | Show a message box |
 | `Width`, `Height` | Window size |
+| `Left`, `Top` | Window position |
 | `BrushColor`, `PenColor`, `PenWidth` | Drawing state |
 | `FontName`, `FontSize`, `FontBold`, `FontItalic` | Font state |
 | `BackgroundColor` | Canvas background |
 | `Title` | Window caption |
-| `KeyDown`, `KeyUp`, `MouseDown`, `MouseUp`, `MouseMove` | Events |
+| `CanResize` | Allow window resizing |
+| `KeyDown`, `KeyUp`, `MouseDown`, `MouseUp`, `MouseMove`, `TextInput` | Events |
 | `LastKey`, `LastText` | Latest keyboard input |
 | `MouseX`, `MouseY` | Mouse position (relative to canvas) |
 
@@ -244,15 +274,21 @@ python demos/04_graphics_shapes.py
 |---|---|
 | `AddButton(caption, x, y)` | Create a Button widget |
 | `AddTextBox(x, y)` | Create a single-line TextBox |
-| `AddMultiLineText(x, y)` | Create a multi-line Text widget |
+| `AddMultiLineTextBox(x, y)` | Create a multi-line Text widget |
+| `AddMultiLineText(x, y)` | Alias for AddMultiLineTextBox |
 | `SetTextBoxText(id, text)` | Set text content |
 | `GetTextBoxText(id)` | Get text content |
 | `SetButtonCaption(id, text)` | Set button label |
 | `GetButtonCaption(id)` | Get button label |
 | `SetSize(id, w, h)` | Resize a control |
 | `Move(id, x, y)` | Reposition a control |
-| `ShowScrollBar(id, show)` | Show/hide scrollbar |
+| `HideControl(id)` | Hide a control |
+| `ShowControl(id)` | Show a hidden control |
+| `Remove(id)` | Remove a control |
 | `ButtonClicked` | Event: button clicked |
+| `TextTyped` | Event: text typed in textbox |
+| `LastClickedButton` | Name of last clicked button |
+| `LastTypedTextBox` | Name of last typed textbox |
 
 ### Turtle
 
@@ -262,18 +298,44 @@ python demos/04_graphics_shapes.py
 | `Hide()` | Hide turtle cursor |
 | `Move(distance)` | Move forward |
 | `Turn(angle)` | Turn right (degrees) |
+| `TurnLeft()` | Turn left 90 degrees |
+| `TurnRight()` | Turn right 90 degrees |
 | `MoveTo(x, y)` | Move to absolute position |
 | `PenDown()` | Start drawing |
 | `PenUp()` | Stop drawing |
 | `Speed` | Animation speed (1-10) |
 | `Angle` | Current heading |
+| `X`, `Y` | Current position |
 
+### Shapes
+
+| Method | Description |
+|---|---|
+| `AddRectangle(w, h)` | Create rectangle shape |
+| `AddEllipse(w, h)` | Create ellipse shape |
+| `AddTriangle(x1,y1,x2,y2,x3,y3)` | Create triangle shape |
+| `AddLine(x1,y1,x2,y2)` | Create line shape |
+| `AddImage(name)` | Add image shape |
+| `AddText(text)` | Add text shape |
+| `Move(id, x, y)` | Move shape to position |
+| `Rotate(id, angle)` | Rotate shape (degrees) |
+| `Zoom(id, sx, sy)` | Scale shape |
+| `Animate(id, x, y, duration)` | Smooth animation |
+| `Remove(id)` | Delete shape |
+| `SetText(id, text)` | Set text on shape |
+| `HideShape(id)` | Hide a shape |
+| `ShowShape(id)` | Show a shape |
+| `GetLeft(id)` | Get x position |
+| `GetTop(id)` | Get y position |
+| `GetOpacity(id)` | Get opacity level |
+| `SetOpacity(id, level)` | Set opacity (0-100) |
 
 ### Math
 
 | Method | Description |
 |---|---|
 | `Sin(deg)`, `Cos(deg)`, `Tan(deg)` | Trigonometry (degrees) |
+| `ArcSin(v)`, `ArcCos(v)`, `ArcTan(v)` | Inverse trig (returns degrees) |
 | `Floor(n)`, `Ceiling(n)`, `Round(n)` | Rounding |
 | `Abs(n)` | Absolute value |
 | `Max(*args)` | Maximum (variadic) |
@@ -283,47 +345,71 @@ python demos/04_graphics_shapes.py
 | `GetRandomNumber(max)` | Random integer 1..max |
 | `Remainder(a, b)` | Modulo |
 | `SquareRoot(n)` | Square root |
+| `Power(base, exp)` | Exponentiation |
+| `NaturalLog(n)` | Natural logarithm |
+| `Log(n)` | Base-10 logarithm |
+| `GetDegrees(rad)` | Radians to degrees |
+| `GetRadians(deg)` | Degrees to radians |
 | `Pi` | Constant (3.14159...) |
-
-### Shapes
-
-| Method | Description |
-|---|---|
-| `AddRectangle(w, h)` | Create animated shape |
-| `AddEllipse(w, h)` | Create animated shape |
-| `AddTriangle(x1,y1,x2,y2,x3,y3)` | Create animated shape |
-| `AddLine(x1,y1,x2,y2)` | Create animated shape |
-| `AddImage(url)` | Add image shape |
-| `Move(id, x, y)` | Animate (delta-based) |
-| `Rotate(id, angle)` | Rotate shape |
-| `Zoom(id, scale)` | Scale shape |
-| `Animate(id, x, y, duration)` | Smooth animation |
-| `Remove(id)` | Delete shape |
-| `SetText(id, text)` | Set text on shape |
 
 ### Network
 
 | Method | Description |
 |---|---|
-| `Get(url)` | HTTP GET (returns JSON) |
-| `Post(url, data)` | HTTP POST (sends JSON, returns JSON) |
+| `Get(url, headers, params)` | HTTP GET (returns response) |
+| `Post(url, data, headers, as_json)` | HTTP POST |
+| `Put(url, data, headers, as_json)` | HTTP PUT |
+| `Delete(url, headers)` | HTTP DELETE |
+| `Patch(url, data, headers, as_json)` | HTTP PATCH |
 | `GetWebPageContents(url)` | Download raw text |
-| `DownloadFile(url, path)` | Download binary file |
+| `DownloadFile(url)` | Download file to temp directory |
+
+### Dictionary
+
+| Method | Description |
+|---|---|
+| `GetDefinition(word)` | Get English definition |
+| `GetDefinitionEnglishToEnglish(word)` | Get English definition |
+| `GetDefinitionEnglishToGerman(word)` | Translate to German |
+| `GetDefinitionEnglishToFrench(word)` | Translate to French |
+| `GetDefinitionEnglishToSpanish(word)` | Translate to Spanish |
+| `GetDefinitionEnglishToItalian(word)` | Translate to Italian |
+| `GetDefinitionEnglishToJapanese(word)` | Translate to Japanese |
+| `GetDefinitionEnglishToKorean(word)` | Translate to Korean |
+| `GetDefinitionEnglishToSimplifiedChinese(word)` | Translate to Simplified Chinese |
+| `GetDefinitionEnglishToTraditionalChinese(word)` | Translate to Traditional Chinese |
+
+### Sound
+
+| Method | Description |
+|---|---|
+| `Play(file_path)` | Play audio file (async) |
+| `PlayAndWait(file_path)` | Play audio file and wait for completion |
+| `PlayClick()` | Play system click sound |
+| `PlayClickAndWait()` | Play click and wait |
+| `PlayChime()` | Play system chime sound |
+| `PlayChimeAndWait()` | Play chime and wait |
+| `PlayChimes()` | Play system chimes sound |
+| `PlayChimesAndWait()` | Play chimes and wait |
+| `PlayBellRing()` | Play system bell ring |
+| `PlayBellRingAndWait()` | Play bell ring and wait |
+| `PlayMusic(notes)` | Play musical notes |
+| `Pause()` | Pause current playback |
+| `Resume()` | Resume paused playback |
+| `Stop()` | Stop current playback |
 
 ### More Objects
 
-- **Clock** – `Time`, `Date`, `Year`, `Month`, `Day`, `WeekDay`, `Hour`, `Minute`, `Second`, `ElapsedMilliseconds`
+- **Clock** – `Time`, `Date`, `Year`, `Month`, `Day`, `WeekDay`, `Hour`, `Minute`, `Second`, `Millisecond`, `ElapsedMilliseconds`
 - **Timer** – `Interval`, `Tick` (event), `Pause()`, `Resume()`
-- **Dictionary** – `SetValue(key, value)`, `GetValue(key)`, `ContainsKey(key)`, `GetAllKeys()`
-- **Array** – `GetValue(index)`, `SetValue(index, value)`, `ContainsKey(index)`, `GetAllIndices()`
-- **Stack** – `PushValue(key, value)`, `PopValue(key)`, `ContainsKey(key)`, `GetCount(key)`
-- **Program** – `Delay(ms)`, `End()`, `GetArgument(index)`, `GetProgramDirectory()`
-- **Desktop** – `Width`, `Height`, `Drives()`
-- **Mouse** – `MouseX`, `MouseY` (screen coordinates)
-- **Sound** – `Play(milliseconds)`, `PlayFrequency(freq, ms)`
-- **File** – `ReadContents(path)`, `WriteContents(path, text)`, `AppendContents(path, text)`
-- **ImageList** – `LoadImage(url)`, `GetImage(id)`, `SetSize(w, h)`, `GetWidth(id)`, `GetHeight(id)`
-- **Text** – `GetLength(text)`, `Append(text1, text2)`, `GetSubText(text, start, length)`, `IsSubText(text, sub)`, `EndsWith(text, sub)`, `StartsWith(text, sub)`, `ConvertToUpperCase(text)`, `ConvertToLowerCase(text)`
+- **File** – `ReadContents(path)`, `WriteContents(path, text)`, `AppendContents(path, text)`, `ReadLine(path, line)`, `WriteLine(path, line, text)`, `InsertLine(path, line, text)`, `CopyFile(src, dst)`, `DeleteFile(path)`, `CreateDirectory(path)`, `DeleteDirectory(path)`, `GetFiles(path)`, `GetDirectories(path)`, `GetTemporaryFilePath()`, `GetSettingsFilePath()`
+- **Desktop** – `Width`, `Height`, `SetWallPaper(path)`
+- **Mouse** – `MouseX`, `MouseY` (screen coordinates), `IsLeftButtonDown`, `IsRightButtonDown`, `HideCursor()`, `ShowCursor()`
+- **Array** – `SetValue(name, index, value)`, `GetValue(name, index)`, `ContainsIndex(name, index)`, `ContainsValue(name, value)`, `GetItemCount(name)`, `IsArray(value)`, `GetAllIndices(name)`, `RemoveValue(name, index)`
+- **Stack** – `PushValue(name, value)`, `PopValue(name)`, `GetCount(name)`
+- **Program** – `Delay(ms)`, `End()`, `GetArgument(index)`, `ArgumentCount`, `Directory`
+- **ImageList** – `LoadImage(path)`, `GetWidthOfImage(name)`, `GetHeightOfImage(name)`
+- **Text** – `GetLength(text)`, `Append(t1, t2)`, `GetSubText(text, start, length)`, `GetSubTextToEnd(text, start)`, `IsSubText(text, sub)`, `EndsWith(text, sub)`, `StartsWith(text, sub)`, `GetIndexOf(text, sub)`, `ConvertToUpperCase(text)`, `ConvertToLowerCase(text)`, `GetCharacter(code)`, `GetCharacterCode(char)`
 
 ## Differences from Microsoft Small Basic
 
@@ -344,7 +430,12 @@ python demos/04_graphics_shapes.py
 | Flickr | Included | Omitted (needs API key) |
 | Events | `GraphicsWindow.MouseDown = OnMouseDown` | Same syntax (Python callbacks) |
 | Object model | Properties assignment | Metaclass + properties |
-| Multiline text | Controls.MultiLineTextBox | Controls.AddMultiLineText |
+| Shape rotation | Built-in | 2D rotation matrix |
+| Translation | Built-in | MyMemory API |
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full changelog.
 
 ## License
 
@@ -363,8 +454,8 @@ Contributions are welcome! Areas that need help:
 
 - **Cross-platform support** (Linux/macOS) – replace `winsound` with other audio backends
 - **Better Controls events** – `Controls.KeyTyped`, `Controls.TextChanged`
-- **Widget positioning** – Support for `Controls.SetSize`, `Controls.Move`, etc.
 - **More demos** – Games, animations, interactive examples
 - **Documentation** – Tutorials, translations
+- **Tests** – Expand test coverage
 
 Please open an issue or pull request on GitHub.

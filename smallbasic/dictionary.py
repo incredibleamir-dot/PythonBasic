@@ -1,18 +1,23 @@
 import urllib.request
 import urllib.parse
+import json
 
 
 class Dictionary:
     """
-    Provides access to an online dictionary service.
-    Uses a free dictionary API to get word definitions.
+    Provides access to an online dictionary and translation service.
+    Uses free APIs for definitions and translations.
     
     Usage:
         definition = Dictionary.GetDefinition("hello")
         print(definition)
+        
+        translation = Dictionary.GetDefinitionEnglishToSpanish("hello")
+        print(translation)
     """
 
     _BASE_URL = "https://api.dictionaryapi.dev/api/v2/entries/en"
+    _TRANSLATE_URL = "https://api.mymemory.translated.net/get"
 
     @classmethod
     def _fetch_definition(cls, word: str) -> str:
@@ -22,7 +27,6 @@ class Dictionary:
             req = urllib.request.Request(url, headers={"User-Agent": "SmallBasicPython/1.0"})
             with urllib.request.urlopen(req, timeout=10) as response:
                 data = response.read().decode("utf-8")
-                import json
                 entries = json.loads(data)
                 if entries and len(entries) > 0:
                     meanings = entries[0].get("meanings", [])
@@ -33,6 +37,27 @@ class Dictionary:
             return "No definition found."
         except Exception as e:
             return f"Could not retrieve definition: {e}"
+
+    @classmethod
+    def _translate(cls, word: str, source: str, target: str) -> str:
+        """Translate a word using the MyMemory translation API."""
+        try:
+            lang_pair = f"{source}|{target}"
+            params = urllib.parse.urlencode({
+                "q": word,
+                "langpair": lang_pair
+            })
+            url = f"{cls._TRANSLATE_URL}?{params}"
+            req = urllib.request.Request(url, headers={"User-Agent": "SmallBasicPython/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                if data.get("responseStatus") == 200:
+                    translated = data.get("responseData", {}).get("translatedText", "")
+                    if translated and translated.lower() != word.lower():
+                        return translated
+            return f"Translation not available for '{word}'"
+        except Exception as e:
+            return f"Could not retrieve translation: {e}"
 
     @classmethod
     def GetDefinition(cls, word: str) -> str:
@@ -58,11 +83,6 @@ class Dictionary:
         Returns:
             The English definition.
         """
-        return cls._fetch_definition(word)
-
-    @classmethod
-    def _translate(cls, word: str, source: str, target: str) -> str:
-        """Placeholder for translation - uses simple API lookup."""
         return cls._fetch_definition(word)
 
     @classmethod
@@ -98,9 +118,9 @@ class Dictionary:
     @classmethod
     def GetDefinitionEnglishToSimplifiedChinese(cls, word: str) -> str:
         """Gets the Simplified Chinese translation."""
-        return cls._translate(word, "en", "zh-Hans")
+        return cls._translate(word, "en", "zh-CN")
 
     @classmethod
     def GetDefinitionEnglishToTraditionalChinese(cls, word: str) -> str:
         """Gets the Traditional Chinese translation."""
-        return cls._translate(word, "en", "zh-Hant")
+        return cls._translate(word, "en", "zh-TW")
