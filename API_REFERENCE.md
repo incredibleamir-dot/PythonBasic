@@ -523,6 +523,8 @@ Tkinter-based drawing canvas with mouse/keyboard events.
 | `Hide()` | `() -> None` | Hides the window (`withdraw`) |
 | `Wait()` | `() -> None` | Enters `mainloop` — keeps the window open and responsive until closed |
 | `Clear()` | `() -> None` | Deletes all canvas items |
+| `BeginBatch()` | `() -> None` | Start deferred rendering — display updates are suppressed until `EndBatch()` |
+| `EndBatch()` | `() -> None` | Flush deferred updates accumulated since `BeginBatch()` |
 | `ShowMessage(text, title)` | `(str, str) -> None` | Shows a `tk.messagebox.showinfo` dialog |
 
 **Drawing methods** (all coordinates are relative to the canvas):
@@ -544,6 +546,17 @@ Tkinter-based drawing canvas with mouse/keyboard events.
 | `GetPixel(x, y)` | `(int, int) -> str` | Returns color string of nearest item, or background color |
 | `GetRandomColor()` | `() -> str` | Random hex color `#RRGGBB` |
 | `GetColorFromRGB(r, g, b)` | `(int, int, int) -> str` | Hex color from 0–255 values |
+
+**Batch rendering:** Use `BeginBatch()` / `EndBatch()` to group many drawing calls into a single display refresh. This avoids redundant window updates and can significantly improve throughput when drawing hundreds of shapes:
+
+```python
+GraphicsWindow.BeginBatch()
+for i in range(100):
+    GraphicsWindow.DrawRectangle(i * 50, 0, 40, 30)
+GraphicsWindow.EndBatch()   # single display refresh
+```
+
+Batches can be nested. Each `BeginBatch()` must be paired with a matching `EndBatch()`. The display is updated only when the outermost batch ends.
 
 ### Properties
 

@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-07-30
+
+### Added
+
+- **Batch rendering** — `GraphicsWindow.BeginBatch()` / `EndBatch()` defers display refreshes so
+  bulk drawing operations trigger a single update. Batch scopes can be nested.
+- **New demo** `demos/15_batch_rendering.py` — side-by-side timing comparison (500 rectangles
+  with and without batch mode)
+- `responsive_demo.py` — responsive layout demo using only the public Small Basic API
+  (window resize via `Hide()`/`Show()`, no direct tkinter access)
+- Internal `begin_batch()` / `end_batch()` / `update()` deferral on `Renderer`
+
+### Changed
+
+- **GraphicsWindow internals refactored** — drawing delegated to new `Renderer` class;
+  `_TkWindow` kept as a backward-compat shim for `Controls`/`ImageList`
+- Centralized `GraphicsState` for pen, brush, font, window, and event state
+- `Renderer._objects` dict replaces per-module canvas id registries
+- `Shapes.Animate()` wraps each frame in `begin_batch()`/`end_batch()` for consistent display
+- `demos/04_graphics_shapes.py` — batched the 8-ellipse loop
+- `demos/99_all_features.py` — batched sections 17a and 17b
+- `pyproject.toml` — added `wheel` build dep, maintainers, `dependencies=[]`,
+  optional dev/docs deps, `package-data` globs, and URL entries
+
+### Fixed
+
+- **`demos/09_clock_timer.py`** — replaced `Program.Delay(10000)` with `GraphicsWindow.Wait()`
+  so the window stays interactive while Timer ticks fire
+- **`demos/10_all_features.py`** — added `event` parameter to `draw_circle`, `on_key`, `on_move`
+  callbacks (were called with a `tk.Event` but defined with no params → `TypeError`)
+- **`DrawText` positional arg bug** — `x`, `y` now passed as positional args to `create_text`
+
 ## [1.2.0] - 2026-07-30
 
 ### Added
