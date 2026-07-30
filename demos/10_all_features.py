@@ -59,4 +59,4 @@ def on_click():
 Controls.ButtonClicked = on_click
 
 TextWindow.WriteLine("Ready! Click the canvas or press keys.")
-Program.Delay(10000)
+GraphicsWindow.Wait()

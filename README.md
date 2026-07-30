@@ -459,6 +459,7 @@ The `demos/` folder contains example scripts demonstrating every feature.
 | 11 | `11_loops_conditions_functions.py` | Python control flow demos |
 | 12 | `12_fractal_tree.py` | Recursive fractal tree with Turtle |
 | 13 | `13_wav_player.py` | WAV player with Play/Pause/Stop, progress & elapsed time |
+| 14 | `14_mouse_coords.py` | Live mouse X/Y display via MouseMove event |
 
 ![WAV Player Demo](Screenshots/wav_player.png)
 

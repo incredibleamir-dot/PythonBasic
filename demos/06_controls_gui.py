@@ -12,8 +12,8 @@ GraphicsWindow.Show()
 
 # TextBox
 TextWindow.WriteLine("TextBox + Button Demo")
-Controls.AddTextBox(20, 20)
-Controls.SetTextBoxText("1", "Type something here")
+tb = Controls.AddTextBox(20, 20)
+Controls.SetTextBoxText(tb, "Type something here")
 Controls.AddButton("Show Text", 20, 50)
 
 multi = Controls.AddMultiLineTextBox(20, 100)
@@ -22,9 +22,10 @@ Controls.SetSize(multi, 260, 100)
 
 # Event handling
 def on_click():
-    text = Controls.GetTextBoxText("1")
+    text = Controls.GetTextBoxText(tb)
     Controls.SetTextBoxText(multi, f"Button clicked!\nText was: {text}")
 
 Controls.ButtonClicked = on_click
 
-Program.Delay(30000)
+Program.Delay(500)
+GraphicsWindow.Wait()

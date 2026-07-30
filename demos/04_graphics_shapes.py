@@ -58,6 +58,4 @@ for i in range(8):
     GraphicsWindow.BrushColor = color
     GraphicsWindow.FillEllipse(20 + i * 55, 380, 40, 30)
 
-Program.Delay(3000)
-GraphicsWindow.Clear()
-GraphicsWindow.DrawText(20, 20, "Cleared! Press ENTER to exit.")
+GraphicsWindow.Wait()

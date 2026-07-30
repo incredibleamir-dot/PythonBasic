@@ -188,9 +188,15 @@ Program execution control and command-line arguments.
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `Delay(ms)` | `(int) -> None` | Sleep for `ms` milliseconds (blocks the thread) |
+| `Delay(ms)` | `(int) -> None` | Sleep for `ms` milliseconds (blocks the main thread) |
 | `End()` | `() -> None` | Exit the program (`sys.exit(0)`) |
 | `GetArgument(index)` | `(int) -> str` | 1-based argument; returns `""` if out of range |
+
+> **⚠ Delay vs Wait:** `Program.Delay()` calls `time.sleep()`, which **blocks the main thread** and prevents the GraphicsWindow from processing events (mouse clicks, keyboard events, button presses). Use `Delay()` only for:
+> - TextWindow-only programs (no GraphicsWindow involved)
+> - Short pauses between automated drawing commands (where no user interaction is expected)
+>
+> For interactive GraphicsWindow programs, use `GraphicsWindow.Wait()` to keep the window responsive. See [GraphicsWindow.Wait()](#graphicswindow) for details.
 
 ```python
 if Program.ArgumentCount > 0:
@@ -515,7 +521,7 @@ Tkinter-based drawing canvas with mouse/keyboard events.
 |--------|-----------|-------------|
 | `Show()` | `() -> None` | Creates & shows the graphics window |
 | `Hide()` | `() -> None` | Hides the window (`withdraw`) |
-| `Wait()` | `() -> None` | Enters `mainloop` — keeps the window open until closed |
+| `Wait()` | `() -> None` | Enters `mainloop` — keeps the window open and responsive until closed |
 | `Clear()` | `() -> None` | Deletes all canvas items |
 | `ShowMessage(text, title)` | `(str, str) -> None` | Shows a `tk.messagebox.showinfo` dialog |
 
@@ -576,6 +582,17 @@ Set these class-level attributes to callable functions. The callback receives a 
 | `MouseUp` | `(event) -> None` | Left button released |
 | `MouseMove` | `(event) -> None` | Mouse moved |
 | `TextInput` | `(event) -> None` | Character input (`<Key>` event) |
+
+> **Important:** For interactive GraphicsWindow programs (controls, events, mouse/keyboard), always use `GraphicsWindow.Wait()` at the end instead of `Program.Delay()`. `Program.Delay()` blocks the main thread and prevents tkinter from processing events, so button clicks, key presses, and mouse events will not fire during the delay.
+>
+> **Pattern for interactive demos:**
+> ```python
+> GraphicsWindow.Show()
+> # ... setup controls, events, drawings ...
+> Program.Delay(500)        # brief pause (non-interactive)
+> GraphicsWindow.Wait()     # interactive — keeps window responsive
+> Program.End()
+> ```
 
 ```python
 GraphicsWindow.Title = "My Drawing"

@@ -67,8 +67,9 @@ class _TkWindow:
             cls._canvas.bind("<KeyPress>", cls._on_key_down)
             cls._canvas.bind("<KeyRelease>", cls._on_key_up)
             cls._canvas.bind("<Key>", cls._on_key_press)
-            cls._canvas.bind("<Button-1>", cls._on_mouse_down)
-            cls._canvas.bind("<ButtonRelease-1>", cls._on_mouse_up)
+            for b in ("1", "2", "3"):
+                cls._canvas.bind(f"<Button-{b}>", cls._on_mouse_down)
+                cls._canvas.bind(f"<ButtonRelease-{b}>", cls._on_mouse_up)
             cls._canvas.bind("<Motion>", cls._on_mouse_move)
             cls._canvas.focus_set()
         if not cls._shown:
