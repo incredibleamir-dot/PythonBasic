@@ -397,6 +397,13 @@ python demos/04_graphics_shapes.py
 | `Pause()` | Pause current playback |
 | `Resume()` | Resume paused playback |
 | `Stop()` | Stop current playback |
+| `WavFile` (property) | Get/set WAV file path; loads header metadata on set |
+| `WavDuration` (property) | Total duration of loaded WAV in seconds (read-only) |
+| `PlayPosition` (property) | Current playback position in seconds (read-only) |
+| `WavPlay()` | Play WAV from beginning or resume from pause |
+| `WavPause()` | Pause WAV playback, saves position |
+| `WavStop()` | Stop WAV playback, reset position to 0 |
+| `WavPlayAndWait()` | Play WAV synchronously (blocking) |
 
 ### More Objects
 
@@ -432,6 +439,33 @@ python demos/04_graphics_shapes.py
 | Object model | Properties assignment | Metaclass + properties |
 | Shape rotation | Built-in | 2D rotation matrix |
 | Translation | Built-in | MyMemory API |
+
+## Demos
+
+The `demos/` folder contains example scripts demonstrating every feature.
+
+| Demo | File | Description |
+|------|------|-------------|
+| 1 | `01_hello_world.py` | Basic TextWindow output and input |
+| 2 | `02_text_window_io.py` | TextWindow colors, cursor, ReadKey |
+| 3 | `03_math_fun.py` | Math operations, random numbers |
+| 4 | `04_graphics_shapes.py` | GraphicsWindow drawing + Shapes |
+| 5 | `05_turtle_drawing.py` | Turtle graphics demo |
+| 6 | `06_controls_gui.py` | Buttons, text boxes, events |
+| 7 | `07_network_rest.py` | REST API GET/POST requests |
+| 8 | `08_file_operations.py` | File read/write/manage |
+| 9 | `09_clock_timer.py` | Clock + Timer with callbacks |
+| 10 | `10_all_features.py` | Quick tour of all objects |
+| 11 | `11_loops_conditions_functions.py` | Python control flow demos |
+| 12 | `12_fractal_tree.py` | Recursive fractal tree with Turtle |
+| 13 | `13_wav_player.py` | WAV player with Play/Pause/Stop, progress & elapsed time |
+
+![WAV Player Demo](Screenshots/wav_player.png)
+
+```bash
+# Run any demo:
+python demos/13_wav_player.py
+```
 
 ## Changelog
 

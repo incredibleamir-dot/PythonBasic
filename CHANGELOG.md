@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-07-30
+
+### Added
+
+- **WAV playback API** on the `Sound` class with position-tracked pause/resume:
+  - `Sound.WavFile` — set the WAV file path; automatically loads header metadata (duration, sample rate)
+  - `Sound.WavDuration` — read-only property returning total duration in seconds
+  - `Sound.PlayPosition` — read-only property returning current playback position in seconds
+  - `Sound.WavPlay()` — play from beginning or resume from paused position
+  - `Sound.WavPause()` — pause and save current position
+  - `Sound.WavStop()` — stop and reset position to zero
+  - `Sound.WavPlayAndWait()` — play synchronously (blocking)
+- **Demo 13** (`demos/13_wav_player.py`) — GUI WAV player using the new API, with Play/Pause/Stop buttons, live elapsed time, and a text-based progress bar
+- **11 tests** for the WAV API (`TestSoundWav`) in the test suite
+
+### Changed
+
+- `Sound` now uses `_PropSetMeta` metaclass for proper `classproperty` setter support
+- Updated README Sound section with WAV properties and methods
+
 ## [1.1.0] - 2026-07-30
 
 ### Fixed

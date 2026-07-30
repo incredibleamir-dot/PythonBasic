@@ -2,9 +2,12 @@ import winsound
 import threading
 import time
 import os
+import wave
+import tempfile
+from smallbasic._utils import classproperty, _PropSetMeta
 
 
-class Sound:
+class Sound(metaclass=_PropSetMeta):
     """
     Provides playback of sounds using the Windows sound system.
     
@@ -13,11 +16,27 @@ class Sound:
         Sound.PlayBellRing()
         Sound.PlayMusic("O5 C8 C8 G8 G8 A8 A8 G4")
         Sound.Play("C:/music/track.mp3")
+        
+    WAV playback:
+        Sound.WavFile = "C:/audio/sample.wav"
+        print(Sound.WavDuration)
+        Sound.WavPlay()
+        Sound.WavPause()
+        Sound.WavStop()
     """
 
     _current_file: str = ""
     _pause_event: threading.Event = threading.Event()
     _pause_event.set()
+
+    _wav_file: str = ""
+    _wav_duration: float = 0.0
+    _wav_framerate: int = 44100
+    _wav_nframes: int = 0
+    _wav_position: float = 0.0
+    _wav_start_time: float = 0.0
+    _wav_playing: bool = False
+    _wav_tmp: str = os.path.join(tempfile.gettempdir(), "_sb_wav_temp.wav")
 
     @classmethod
     def PlayClick(cls) -> None:
@@ -27,7 +46,7 @@ class Sound:
     @classmethod
     def PlayClickAndWait(cls) -> None:
         """Plays the Click sound and waits for it to finish."""
-        winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS | winsound.SND_SYNC)
+        winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS | 0)
 
     @classmethod
     def PlayChime(cls) -> None:
@@ -37,7 +56,7 @@ class Sound:
     @classmethod
     def PlayChimeAndWait(cls) -> None:
         """Plays the Chime sound and waits for it to finish."""
-        winsound.PlaySound("SystemExclamation", winsound.SND_ALIAS | winsound.SND_SYNC)
+        winsound.PlaySound("SystemExclamation", winsound.SND_ALIAS | 0)
 
     @classmethod
     def PlayChimes(cls) -> None:
@@ -47,7 +66,7 @@ class Sound:
     @classmethod
     def PlayChimesAndWait(cls) -> None:
         """Plays the Chimes sound and waits for it to finish."""
-        winsound.PlaySound("SystemQuestion", winsound.SND_ALIAS | winsound.SND_SYNC)
+        winsound.PlaySound("SystemQuestion", winsound.SND_ALIAS | 0)
 
     @classmethod
     def PlayBellRing(cls) -> None:
@@ -57,7 +76,7 @@ class Sound:
     @classmethod
     def PlayBellRingAndWait(cls) -> None:
         """Plays the Bell Ring sound and waits for it to finish."""
-        winsound.PlaySound("SystemHand", winsound.SND_ALIAS | winsound.SND_SYNC)
+        winsound.PlaySound("SystemHand", winsound.SND_ALIAS | 0)
 
     @classmethod
     def PlayMusic(cls, notes: str) -> None:
@@ -119,7 +138,7 @@ class Sound:
         cls._current_file = file_path
         cls._pause_event.set()
         if file_path.lower().endswith('.wav'):
-            winsound.PlaySound(file_path, winsound.SND_FILENAME | winsound.SND_SYNC)
+            winsound.PlaySound(file_path, winsound.SND_FILENAME | 0)
         else:
             cls.Play(file_path)
             if os.path.exists(file_path):
@@ -157,3 +176,111 @@ class Sound:
         cls._pause_event.set()
         cls._current_file = ""
         winsound.PlaySound(None, winsound.SND_PURGE)
+
+    # ------------------------------------------------------------------ #
+    #  WAV playback (position-tracked pause/resume via temp sub-wav)     #
+    # ------------------------------------------------------------------ #
+
+    @classproperty
+    def WavFile(cls) -> str:
+        """Gets or sets the WAV file path.  Setting loads header metadata."""
+        return cls._wav_file
+
+    @WavFile.setter
+    def WavFile(cls, path: str) -> None:
+        cls._wav_file = path
+        cls._wav_position = 0.0
+        cls._wav_playing = False
+        if path and os.path.exists(path):
+            try:
+                with wave.open(path) as w:
+                    cls._wav_framerate = w.getframerate()
+                    cls._wav_nframes = w.getnframes()
+                    cls._wav_duration = cls._wav_nframes / cls._wav_framerate
+            except Exception:
+                cls._wav_duration = 0.0
+                cls._wav_framerate = 44100
+                cls._wav_nframes = 0
+        else:
+            cls._wav_duration = 0.0
+
+    @classproperty
+    def WavDuration(cls) -> float:
+        """Total duration of the loaded WAV file in seconds (read-only)."""
+        return cls._wav_duration
+
+    @classproperty
+    def PlayPosition(cls) -> float:
+        """Current playback position in seconds (read-only)."""
+        if not cls._wav_playing:
+            return min(cls._wav_position, cls._wav_duration)
+        elapsed = time.time() - cls._wav_start_time
+        return min(cls._wav_position + elapsed, cls._wav_duration)
+
+    @classmethod
+    def _write_subwav(cls, start_sec: float) -> bool:
+        remaining = cls._wav_nframes - int(start_sec * cls._wav_framerate)
+        if remaining <= 0:
+            return False
+        with wave.open(cls._wav_file) as src:
+            src.setpos(int(start_sec * cls._wav_framerate))
+            frames = src.readframes(remaining)
+        with wave.open(cls._wav_tmp, "wb") as dst:
+            dst.setnchannels(1)
+            dst.setsampwidth(2)
+            dst.setframerate(cls._wav_framerate)
+            dst.writeframes(frames)
+        return True
+
+    @classmethod
+    def WavPlay(cls) -> None:
+        """
+        Plays the WAV file from the beginning, or resumes from pause.
+        Requires WavFile to be set first.
+        """
+        if not cls._wav_file or not os.path.exists(cls._wav_file):
+            return
+        ok = cls._write_subwav(cls._wav_position)
+        if not ok:
+            return
+        cls._wav_start_time = time.time()
+        cls._wav_playing = True
+        winsound.PlaySound(cls._wav_tmp, winsound.SND_FILENAME | winsound.SND_ASYNC)
+
+    @classmethod
+    def WavPause(cls) -> None:
+        """
+        Pauses WAV playback and saves the current position.
+        Call WavPlay() or WavResume() to continue.
+        """
+        if not cls._wav_playing:
+            return
+        elapsed = time.time() - cls._wav_start_time
+        cls._wav_position += elapsed
+        if cls._wav_position >= cls._wav_duration:
+            cls._wav_position = cls._wav_duration
+        cls._wav_playing = False
+        winsound.PlaySound(None, winsound.SND_PURGE)
+
+    @classmethod
+    def WavStop(cls) -> None:
+        """
+        Stops WAV playback and resets the position to the beginning.
+        """
+        cls._wav_position = 0.0
+        cls._wav_playing = False
+        winsound.PlaySound(None, winsound.SND_PURGE)
+
+    @classmethod
+    def WavPlayAndWait(cls) -> None:
+        """
+        Plays the WAV file and blocks until playback finishes.
+        Requires WavFile to be set first.
+        """
+        if not cls._wav_file or not os.path.exists(cls._wav_file):
+            return
+        cls._wav_position = 0.0
+        cls._wav_playing = True
+        winsound.PlaySound(cls._wav_file, winsound.SND_FILENAME | 0)
+        cls._wav_position = cls._wav_duration
+        cls._wav_playing = False
