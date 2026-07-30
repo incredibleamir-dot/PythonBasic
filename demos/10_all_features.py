@@ -18,11 +18,11 @@ TextWindow.Show()
 
 TextWindow.WriteLine("=== All Features Demo ===")
 TextWindow.WriteLine("Click on the GraphicsWindow to draw circles.")
-TextWindow.WriteLine("Press ESC to clear., UP arrow for info.")
+TextWindow.WriteLine("Press ESC to clear, UP arrow for info.")
 TextWindow.WriteLine()
 
 # Mouse drawing
-def draw_circle():
+def draw_circle(event):
     x = GraphicsWindow.MouseX - 15
     y = GraphicsWindow.MouseY - 15
     r = Math.GetRandomNumber(20) + 10
@@ -33,7 +33,7 @@ def draw_circle():
 GraphicsWindow.MouseDown = draw_circle
 
 # Keyboard events
-def on_key():
+def on_key(event):
     key = GraphicsWindow.LastKey
     if key == "Escape":
         GraphicsWindow.Clear()
@@ -46,7 +46,7 @@ def on_key():
 GraphicsWindow.KeyDown = on_key
 
 # Mouse move tracking
-def on_move():
+def on_move(event):
     pass  # Can be used for e.g. status
 
 GraphicsWindow.MouseMove = on_move

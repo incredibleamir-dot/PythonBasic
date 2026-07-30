@@ -50,12 +50,14 @@ GraphicsWindow.FontItalic = True
 GraphicsWindow.PenColor = "Gray"
 GraphicsWindow.DrawText(20, 320, "Italic text - different font settings")
 
-# Random colors
+# Random colors (batched for efficiency)
+GraphicsWindow.BeginBatch()
 for i in range(8):
     color = GraphicsWindow.GetColorFromRGB(
         30 * i, 200 - 20 * i, 100 + 15 * i
     )
     GraphicsWindow.BrushColor = color
     GraphicsWindow.FillEllipse(20 + i * 55, 380, 40, 30)
+GraphicsWindow.EndBatch()
 
 GraphicsWindow.Wait()

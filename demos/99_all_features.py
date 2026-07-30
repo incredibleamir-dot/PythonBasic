@@ -429,7 +429,8 @@ GraphicsWindow.Top = 100
 GraphicsWindow.CanResize = True
 GraphicsWindow.Show()
 
-# ----- 17a: Drawing primitives -----
+# ----- 17a: Drawing primitives (batched) -----
+GraphicsWindow.BeginBatch()
 GraphicsWindow.PenColor = "Black"
 GraphicsWindow.PenWidth = 2
 GraphicsWindow.BrushColor = "LightGray"
@@ -443,9 +444,11 @@ GraphicsWindow.DrawTriangle(370, 85, 420, 25, 470, 85)
 GraphicsWindow.FillTriangle(480, 85, 530, 25, 580, 85)
 GraphicsWindow.DrawLine(600, 25, 680, 85)
 GraphicsWindow.SetPixel(620, 50, "Red")
+GraphicsWindow.EndBatch()
 pixel_color = GraphicsWindow.GetPixel(620, 50)
 GraphicsWindow.DrawText(630, 50, f"Pixel: {pixel_color}")
 
+GraphicsWindow.BeginBatch()
 GraphicsWindow.PenColor = "DarkBlue"
 GraphicsWindow.DrawText(10, 95, "b) Text & fonts")
 GraphicsWindow.FontName = "Arial"
@@ -466,6 +469,7 @@ GraphicsWindow.FontBold = False
 GraphicsWindow.FontItalic = False
 GraphicsWindow.FontName = "Consolas"
 GraphicsWindow.DrawBoundText(10, 200, 150, "DrawBoundText wraps long text automatically at the given width.")
+GraphicsWindow.EndBatch()
 
 rc = GraphicsWindow.GetRandomColor()
 GraphicsWindow.DrawText(10, 235, f"c) Random color: {rc}")

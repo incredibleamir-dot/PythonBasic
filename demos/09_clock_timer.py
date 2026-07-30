@@ -6,7 +6,7 @@ For a smoothly interactive Timer demo, pair it with GraphicsWindow
 (which runs its own event loop) instead of Program.Delay().
 """
 
-from smallbasic import Clock, Timer, TextWindow, GraphicsWindow, Program
+from smallbasic import Clock, Timer, TextWindow, GraphicsWindow
 
 TextWindow.Title = "Clock & Timer Demo"
 TextWindow.ForegroundColor = "White"
@@ -27,6 +27,8 @@ GraphicsWindow.Title = "Timer Demo (close to exit)"
 GraphicsWindow.Width = 400
 GraphicsWindow.Height = 200
 GraphicsWindow.BackgroundColor = "White"
+GraphicsWindow.DrawText(20, 20, "Timer will tick 5 times in the console.")
+GraphicsWindow.DrawText(20, 40, "Close this window to exit.")
 GraphicsWindow.Show()
 
 count = 0
@@ -43,6 +45,4 @@ Timer.Interval = 1000
 Timer.Tick = tick
 TextWindow.WriteLine("Timer started (1-second intervals, 5 ticks)...")
 
-# GraphicsWindow mainloop keeps events flowing
-Program.Delay(10000)
-GraphicsWindow.Hide()
+GraphicsWindow.Wait()
