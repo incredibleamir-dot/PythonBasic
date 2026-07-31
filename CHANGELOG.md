@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2026-07-31
+
+### Added
+
+- **`Sound.WavPlaying`** — read-only property returning `True` while WAV audio is currently playing.
+  High-level replacement for the internal `_wav_playing` flag in user code.
+
+### Changed
+
+- `demos/13_wav_player.py` — now uses the public `Sound.WavPlaying` property instead of internal
+  attributes (`_wav_playing`, `_wav_position`); `on_play` logic simplified since `WavPlay()`
+  already resumes from a paused position
+
 ## [1.3.0] - 2026-07-30
 
 ### Added

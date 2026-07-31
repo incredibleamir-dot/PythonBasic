@@ -423,6 +423,7 @@ Properties and methods for playing WAV files with position-tracked pause/resume.
 | `WavFile` | property (get/set) | Path to WAV file. Setting it loads header metadata (duration, sample rate) |
 | `WavDuration` | property (read-only) | Total duration of loaded WAV in seconds (`float`) |
 | `PlayPosition` | property (read-only) | Current playback position in seconds (`float`). Updates live during play |
+| `WavPlaying` | property (read-only) | `True` while WAV audio is currently playing (`bool`) |
 | `WavPlay()` | method | Play from beginning or resume from paused position |
 | `WavPause()` | method | Pause and save current position |
 | `WavStop()` | method | Stop and reset position to 0 |
@@ -438,7 +439,8 @@ Properties and methods for playing WAV files with position-tracked pause/resume.
 Sound.WavFile = "sample-speech-1m.wav"
 print(f"Duration: {Sound.WavDuration:.2f}s")    # 60.00s
 Sound.WavPlay()                                   # start playback
-pos = Sound.PlayPosition                          # current position
+if Sound.WavPlaying:                              # is it playing?
+    pos = Sound.PlayPosition                      # current position
 Sound.WavPause()                                  # pause
 Sound.WavPlay()                                   # resume from pause
 Sound.WavStop()                                   # stop & reset

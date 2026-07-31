@@ -77,7 +77,7 @@ def _update_ui():
         bar = chr(9608) * blocks + chr(9617) * (30 - blocks)
         Shapes.SetText(progress_text, "[" + bar + "] " + str(int(pct * 100)).rjust(3) + "%")
 
-        if Sound._wav_playing and ct >= total_dur - 0.3:
+        if Sound.WavPlaying and ct >= total_dur - 0.3:
             Sound.WavStop()
             Controls.SetButtonCaption(play_btn, "Play")
             Shapes.SetText(status, "Finished")
@@ -87,9 +87,7 @@ def _update_ui():
 
 
 def on_play():
-    if Sound._wav_position > 0 and not Sound._wav_playing:
-        Sound.WavPlay()
-    elif not Sound._wav_playing:
+    if not Sound.WavPlaying:
         Sound.WavPlay()
         Timer.Interval = 100
         Timer.Tick = _update_ui

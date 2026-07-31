@@ -400,6 +400,7 @@ python demos/04_graphics_shapes.py
 | `WavFile` (property) | Get/set WAV file path; loads header metadata on set |
 | `WavDuration` (property) | Total duration of loaded WAV in seconds (read-only) |
 | `PlayPosition` (property) | Current playback position in seconds (read-only) |
+| `WavPlaying` (property) | True while WAV audio is playing (read-only) |
 | `WavPlay()` | Play WAV from beginning or resume from pause |
 | `WavPause()` | Pause WAV playback, saves position |
 | `WavStop()` | Stop WAV playback, reset position to 0 |
