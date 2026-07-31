@@ -53,9 +53,8 @@ class Renderer:
                 highlightthickness=0
             )
             cls._canvas.pack()
-            cls._canvas.bind("<KeyPress>", cls._on_key_down)
+            cls._canvas.bind("<Key>", cls._on_key)
             cls._canvas.bind("<KeyRelease>", cls._on_key_up)
-            cls._canvas.bind("<Key>", cls._on_key_press)
             for b in ("1", "2", "3"):
                 cls._canvas.bind(f"<Button-{b}>", cls._on_mouse_down)
                 cls._canvas.bind(f"<ButtonRelease-{b}>", cls._on_mouse_up)
@@ -92,22 +91,20 @@ class Renderer:
     # ── Event handlers ─────────────────────────────────────────────
 
     @classmethod
-    def _on_key_down(cls, event):
+    def _on_key(cls, event):
         GraphicsState.last_key = event.keysym
-        if GraphicsState.KeyDown and cls._root:
-            cls._root.after_idle(lambda e=event: GraphicsState.KeyDown(e))
+        GraphicsState.last_text = event.char
+        if cls._root:
+            if GraphicsState.KeyDown:
+                cls._root.after_idle(lambda e=event: GraphicsState.KeyDown(e))
+            if GraphicsState.TextInput:
+                cls._root.after_idle(lambda e=event: GraphicsState.TextInput(e))
 
     @classmethod
     def _on_key_up(cls, event):
         GraphicsState.last_key = event.keysym
         if GraphicsState.KeyUp and cls._root:
             cls._root.after_idle(lambda e=event: GraphicsState.KeyUp(e))
-
-    @classmethod
-    def _on_key_press(cls, event):
-        GraphicsState.last_text = event.char
-        if GraphicsState.TextInput and cls._root:
-            cls._root.after_idle(lambda e=event: GraphicsState.TextInput(e))
 
     @classmethod
     def _on_mouse_down(cls, event):

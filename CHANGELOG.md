@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-07-31
+
+### Fixed
+
+- **`GraphicsWindow.KeyDown` / `LastKey` now fire.** The renderer bound both `<KeyPress>` and
+  `<Key>` (aliases in Tk), so the `<Key>` binding overwrote `<KeyPress>` and key events never
+  reached the handler. The bindings are merged into a single `<Key>` handler that updates both
+  `LastKey`/`KeyDown` and `LastText`/`TextInput`.
+
+
 ## [1.3.1] - 2026-07-31
 
 ### Added
