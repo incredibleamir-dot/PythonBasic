@@ -3,7 +3,6 @@ Demo 8: File - read/write/append text files
 """
 
 from smallbasic import File, TextWindow, Program
-import os
 
 TextWindow.Title = "File Operations Demo"
 TextWindow.ForegroundColor = "White"
@@ -30,7 +29,7 @@ content = File.ReadContents(filename)
 TextWindow.WriteLine(f"\nFile contents:\n{content}")
 
 # Delete
-os.remove(filename)
+File.DeleteFile(filename)
 TextWindow.WriteLine("Cleanup complete (file deleted).")
 
 TextWindow.Pause()

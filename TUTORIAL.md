@@ -545,31 +545,32 @@ GraphicsWindow.Wait()
 
 ## 11. Keyboard & mouse events
 
-Event handlers are functions you assign to a property. **GraphicsWindow events
-pass a tkinter event object**, so your handler should accept one argument
-(named `event` in the examples below).
+Event handlers are functions you assign to a property. **GraphicsWindow event
+handlers take no arguments** — the library does *not* pass an event object to your
+function. You read the keyboard/mouse state through the public properties
+(`LastKey`, `LastText`, `MouseX`, `MouseY`) instead.
 
 ```python
-def on_key(event):
+def on_key():
     key = GraphicsWindow.LastKey          # e.g. "a", "Up", "Escape", "Return"
     TextWindow.WriteLine("Key pressed: " + key)
     if key == "Escape":
         GraphicsWindow.Clear()
 
-def on_key_up(event):
+def on_key_up():
     TextWindow.WriteLine("Key released: " + GraphicsWindow.LastKey)
 
-def on_text_input(event):
+def on_text_input():
     TextWindow.WriteLine("Typed: " + GraphicsWindow.LastText)
 
-def on_mouse_down(event):
+def on_mouse_down():
     TextWindow.WriteLine("Click at " + str(GraphicsWindow.MouseX) +
                          ", " + str(GraphicsWindow.MouseY))
 
-def on_mouse_up(event):
+def on_mouse_up():
     TextWindow.WriteLine("Released the mouse button.")
 
-def on_mouse_move(event):
+def on_mouse_move():
     pass   # fires continuously while the mouse moves
 ```
 
@@ -646,6 +647,55 @@ Controls.TextTyped = on_text_typed
 
 GraphicsWindow.Wait()     # required — keeps the window + widgets alive
 ```
+
+### Extended controls: DropDown, Slider, ProgressBar, Table
+
+`Controls` also offers richer widgets. Each returns a name you use to read/write it:
+
+```python
+fruits = ["Apple", "Banana", "Cherry"]
+dd = Controls.AddDropDown(fruits, 20, 20)        # dropdown (pick one item)
+Controls.SetSelectedDropDownItem(dd, 1)          # select by 0-based index
+Controls.GetSelectedDropDownItem(dd)             # "Banana"
+Controls.GetDropDownItemCount(dd)                # 3
+
+sl = Controls.AddSlider(0, 100, 20, 60)          # slider 0..100
+Controls.SetSliderValue(sl, 40)
+Controls.GetSliderValue(sl)                      # 40
+
+pb = Controls.AddProgressBar(20, 100)            # progress 0..100
+Controls.SetProgressBarValue(pb, 75)             # clamped to 0..100
+
+table = Controls.AddTable([                       # first row = headers
+    ["Player", "Score"],
+    ["Alice", 3400],
+    ["Bob", 2200],
+], 20, 160)
+Controls.SetTableData(table, [["Player", "Score"], ["Carol", 5100]])
+Controls.GetSelectedTableRow(table)              # 1-based row, or 0 if none
+```
+
+These extended controls fire their own events (handlers take **no argument**):
+
+```python
+def on_dropdown():
+    TextWindow.WriteLine("Picked " + Controls.GetSelectedDropDownItem(dd))
+
+def on_slider():
+    TextWindow.WriteLine("Slider is " + str(Controls.GetSliderValue(sl)))
+
+def on_table_row():
+    TextWindow.WriteLine("Row " + str(Controls.GetSelectedTableRow(table)) +
+                         " in " + Controls.LastSelectedTable)
+
+Controls.DropDownSelected = on_dropdown
+Controls.SliderChanged = on_slider
+Controls.TableRowSelected = on_table_row
+```
+
+Use `Controls.LastChangedSlider` / `Controls.LastSelectedDropDown` /
+`Controls.LastSelectedTable` when you have more than one of each widget and need
+to know which one fired.
 
 ---
 
@@ -1102,7 +1152,7 @@ def on_tick():
     GraphicsWindow.FillEllipse(ball_x - radius, ball_y - radius,
                                radius * 2, radius * 2)
 
-def on_key(event):
+def on_key():
     if GraphicsWindow.LastKey == "Escape":
         Program.End()
 

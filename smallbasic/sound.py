@@ -1,3 +1,11 @@
+# --------------------------------------------------------------------------
+# Python Small Basic
+# Purpose : Sound object - system sounds, beep tunes and WAV playback control.
+# Version : 1.2.0
+# Author  : Amir Arshad
+# Email   : incredibleamir@gmail.com
+# --------------------------------------------------------------------------
+
 import winsound
 import threading
 import time

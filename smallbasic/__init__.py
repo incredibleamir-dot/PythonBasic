@@ -1,3 +1,11 @@
+# --------------------------------------------------------------------------
+# Python Small Basic
+# Purpose : Package initializer exposing the public Small Basic API.
+# Version : 1.2.0
+# Author  : Amir Arshad
+# Email   : incredibleamir@gmail.com
+# --------------------------------------------------------------------------
+
 """
 Python Small Basic
 ~~~~~~~~~~~~~~~~~

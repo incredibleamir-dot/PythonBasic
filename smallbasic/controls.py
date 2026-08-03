@@ -1,13 +1,21 @@
-import tkinter as tk
+# --------------------------------------------------------------------------
+# Python Small Basic
+# Purpose : Controls object - buttons, text boxes and extended widgets on the graphics window.
+# Version : 1.2.0
+# Author  : Amir Arshad
+# Email   : incredibleamir@gmail.com
+# --------------------------------------------------------------------------
+
 from typing import Optional
 from smallbasic._utils import classproperty
+from smallbasic._renderer import Renderer
 
 
 class Controls:
     """
     The Controls object allows you to add, move and interact with controls
     (buttons, text boxes) on the Graphics Window.
-    
+
     Usage:
         btn = Controls.AddButton("Click Me", 100, 50)
         Controls.ButtonClicked = lambda: TextWindow.WriteLine("Clicked!")
@@ -16,262 +24,286 @@ class Controls:
     """
 
     _widgets: dict = {}
+    _types: dict = {}   # name -> "button" | "textbox" | "multitext"
     _counter: int = 0
     _last_clicked_button: str = ""
     _last_typed_textbox: str = ""
+    _last_changed_slider: str = ""
+    _last_selected_dropdown: str = ""
+    _last_selected_table: str = ""
 
     ButtonClicked = None
     TextTyped = None
+    SliderChanged = None
+    DropDownSelected = None
+    TableRowSelected = None
+
+    @classmethod
+    def _backend(cls):
+        return Renderer.backend()
 
     @classmethod
     def _get_parent(cls):
-        """Get the tkinter parent window, importing here to avoid circular import."""
-        from smallbasic.graphics_window import _TkWindow
-        _TkWindow.ensure()
-        return _TkWindow._root
+        """Get the backend root window handle."""
+        cls._backend().ensure()
+        return Renderer._root
 
     @classproperty
     def LastClickedButton(cls) -> str:
-        """Gets the name of the last button that was clicked."""
         return cls._last_clicked_button
 
     @classproperty
     def LastTypedTextBox(cls) -> str:
-        """Gets the name of the last TextBox text was typed into."""
         return cls._last_typed_textbox
+
+    @classproperty
+    def LastChangedSlider(cls) -> str:
+        return cls._last_changed_slider
+
+    @classproperty
+    def LastSelectedDropDown(cls) -> str:
+        return cls._last_selected_dropdown
+
+    @classproperty
+    def LastSelectedTable(cls) -> str:
+        return cls._last_selected_table
 
     @classmethod
     def AddButton(cls, caption: str, left: int, top: int) -> str:
-        """
-        Adds a button to the graphics window at the specified position.
-        
-        Args:
-            caption: The caption to display on the button.
-            left: The x co-ordinate of the button.
-            top: The y co-ordinate of the button.
-            
-        Returns:
-            The name of the button that was added.
-        """
-        parent = cls._get_parent()
+        cls._backend().ensure()
         cls._counter += 1
         name = f"Button{cls._counter}"
 
-        btn = tk.Button(parent, text=caption, relief=tk.RAISED, bd=2)
-
-        def on_click(event=None):
+        def on_click():
             cls._last_clicked_button = name
             if cls.ButtonClicked:
                 cls.ButtonClicked()
 
-        btn.config(command=on_click)
-        btn.place(x=left, y=top)
-        cls._widgets[name] = btn
+        handle = cls._backend().add_button(caption, left, top, callback=on_click)
+        cls._widgets[name] = handle
+        cls._types[name] = "button"
         return name
 
     @classmethod
     def GetButtonCaption(cls, button_name: str) -> str:
-        """
-        Gets the current caption of the specified button.
-        
-        Args:
-            button_name: The button whose caption is requested.
-            
-        Returns:
-            The current caption of the button.
-        """
-        btn = cls._widgets.get(button_name)
-        if btn and isinstance(btn, tk.Button):
-            return btn.cget("text")
+        handle = cls._widgets.get(button_name)
+        if handle is not None and cls._types.get(button_name) == "button":
+            return cls._backend().button_caption(handle)
         return ""
 
     @classmethod
     def SetButtonCaption(cls, button_name: str, caption: str) -> None:
-        """
-        Sets the caption of the specified button.
-        
-        Args:
-            button_name: The button whose caption needs to be set.
-            caption: The new caption for the button.
-        """
-        btn = cls._widgets.get(button_name)
-        if btn and isinstance(btn, tk.Button):
-            btn.config(text=caption)
+        handle = cls._widgets.get(button_name)
+        if handle is not None and cls._types.get(button_name) == "button":
+            cls._backend().button_caption(handle, caption)
 
     @classmethod
     def AddTextBox(cls, left: int, top: int) -> str:
-        """
-        Adds a text input box to the graphics window.
-        
-        Args:
-            left: The x co-ordinate of the text box.
-            top: The y co-ordinate of the text box.
-            
-        Returns:
-            The name of the text box that was added.
-        """
-        parent = cls._get_parent()
-        cls._counter += 1
-        name = f"TextBox{cls._counter}"
-
-        entry = tk.Entry(parent, relief=tk.SUNKEN, bd=2)
-
-        def on_keyrelease(event):
-            cls._last_typed_textbox = name
-            if cls.TextTyped:
-                cls.TextTyped()
-
-        entry.bind("<KeyRelease>", on_keyrelease)
-        entry.place(x=left, y=top, width=120, height=25)
-        cls._widgets[name] = entry
-        return name
+        return cls._add_textbox(left, top, multiline=False)
 
     @classmethod
     def AddMultiLineTextBox(cls, left: int, top: int) -> str:
-        """
-        Adds a multi-line text input box to the graphics window.
-        
-        Args:
-            left: The x co-ordinate of the text box.
-            top: The y co-ordinate of the text box.
-            
-        Returns:
-            The name of the text box that was added.
-        """
-        parent = cls._get_parent()
+        return cls._add_textbox(left, top, multiline=True)
+
+    @classmethod
+    def AddMultiLineText(cls, left: int, top: int) -> str:
+        return cls.AddMultiLineTextBox(left, top)
+
+    @classmethod
+    def _add_textbox(cls, left: int, top: int, multiline: bool) -> str:
+        cls._backend().ensure()
         cls._counter += 1
         name = f"TextBox{cls._counter}"
 
-        text_widget = tk.Text(parent, relief=tk.SUNKEN, bd=2, height=4, width=20)
-
-        def on_keyrelease(event):
+        def on_keyrelease():
             cls._last_typed_textbox = name
             if cls.TextTyped:
                 cls.TextTyped()
 
-        text_widget.bind("<KeyRelease>", on_keyrelease)
-        text_widget.place(x=left, y=top, width=200, height=80)
-        cls._widgets[name] = text_widget
+        handle = cls._backend().add_textbox(
+            left, top, callback=on_keyrelease, multiline=multiline)
+        cls._widgets[name] = handle
+        cls._types[name] = "multitext" if multiline else "textbox"
         return name
 
     @classmethod
-    def AddMultiLineText(cls, left: int, top: int) -> str:
-        """
-        Alias for AddMultiLineTextBox.
-        
-        Args:
-            left: The x co-ordinate of the text box.
-            top: The y co-ordinate of the text box.
-            
-        Returns:
-            The name of the text box that was added.
-        """
-        return cls.AddMultiLineTextBox(left, top)
-
-    @classmethod
     def GetTextBoxText(cls, textbox_name: str) -> str:
-        """
-        Gets the current text of the specified TextBox.
-        
-        Args:
-            textbox_name: The TextBox whose text is requested.
-            
-        Returns:
-            The text in the TextBox.
-        """
-        widget = cls._widgets.get(textbox_name)
-        if not widget:
+        handle = cls._widgets.get(textbox_name)
+        if handle is None:
             return ""
-        if isinstance(widget, tk.Entry):
-            return widget.get()
-        elif isinstance(widget, tk.Text):
-            return widget.get("1.0", "end-1c")
-        return ""
+        return cls._backend().textbox_text(handle)
 
     @classmethod
     def SetTextBoxText(cls, textbox_name: str, text: str) -> None:
-        """
-        Sets the text of the specified TextBox.
-        
-        Args:
-            textbox_name: The TextBox whose text needs to be set.
-            text: The new text for the TextBox.
-        """
-        widget = cls._widgets.get(textbox_name)
-        if not widget:
-            return
-        if isinstance(widget, tk.Entry):
-            widget.delete(0, tk.END)
-            widget.insert(0, text)
-        elif isinstance(widget, tk.Text):
-            widget.delete("1.0", tk.END)
-            widget.insert("1.0", text)
+        handle = cls._widgets.get(textbox_name)
+        if handle is not None:
+            cls._backend().textbox_text(handle, text)
 
     @classmethod
     def Remove(cls, control_name: str) -> None:
-        """
-        Removes a control from the Graphics Window.
-        
-        Args:
-            control_name: The name of the control to remove.
-        """
-        widget = cls._widgets.pop(control_name, None)
-        if widget:
-            widget.destroy()
+        handle = cls._widgets.pop(control_name, None)
+        cls._types.pop(control_name, None)
+        if handle is not None:
+            cls._backend().control_destroy(handle)
 
     @classmethod
     def Move(cls, control: str, x: int, y: int) -> None:
-        """
-        Moves the control to a new position.
-        
-        Args:
-            control: The name of the control to move.
-            x: The x co-ordinate of the new position.
-            y: The y co-ordinate of the new position.
-        """
-        widget = cls._widgets.get(control)
-        if widget:
-            widget.place(x=x, y=y)
+        handle = cls._widgets.get(control)
+        if handle is not None:
+            cls._backend().control_move(handle, x, y)
 
     @classmethod
     def SetSize(cls, control: str, width: int, height: int) -> None:
-        """
-        Sets the size of the control.
-        
-        Args:
-            control: The name of the control to resize.
-            width: The width of the control.
-            height: The height of the control.
-        """
-        widget = cls._widgets.get(control)
-        if widget:
-            if isinstance(widget, tk.Text):
-                widget.config(width=max(1, width // 10), height=max(1, height // 20))
-            widget.place_configure(width=width, height=height)
+        handle = cls._widgets.get(control)
+        if handle is not None:
+            cls._backend().control_size(handle, width, height)
 
     @classmethod
     def HideControl(cls, control_name: str) -> None:
-        """
-        Hides an already added control.
-        
-        Args:
-            control_name: The name of the control.
-        """
-        widget = cls._widgets.get(control_name)
-        if widget:
-            widget.place_forget()
+        handle = cls._widgets.get(control_name)
+        if handle is not None:
+            cls._backend().control_visible(handle, False)
 
     @classmethod
     def ShowControl(cls, control_name: str) -> None:
-        """
-        Shows a previously hidden control.
-        
-        Args:
-            control_name: The name of the control.
-        """
-        widget = cls._widgets.get(control_name)
-        if widget:
-            try:
-                widget.place()
-            except Exception:
-                widget.place(x=0, y=0)
+        handle = cls._widgets.get(control_name)
+        if handle is not None:
+            cls._backend().control_visible(handle, True)
+
+    # ── DropDown ──────────────────────────────────────────────────
+    @classmethod
+    def _as_list(cls, data) -> list:
+        """Coerce a 1D array (list or Small Basic dictionary) to a list."""
+        if isinstance(data, dict):
+            return list(data.values())
+        return list(data)
+
+    @classmethod
+    def AddDropDown(cls, items, left: int, top: int) -> str:
+        cls._backend().ensure()
+        cls._counter += 1
+        name = f"DropDown{cls._counter}"
+
+        def on_select():
+            cls._last_selected_dropdown = name
+            if cls.DropDownSelected:
+                cls.DropDownSelected()
+
+        handle = cls._backend().add_dropdown(
+            cls._as_list(items), left, top, callback=on_select)
+        cls._widgets[name] = handle
+        cls._types[name] = "dropdown"
+        return name
+
+    @classmethod
+    def GetSelectedDropDownItem(cls, name: str) -> str:
+        handle = cls._widgets.get(name)
+        if handle is not None and cls._types.get(name) == "dropdown":
+            return cls._backend().dropdown_selected(handle)
+        return ""
+
+    @classmethod
+    def SetSelectedDropDownItem(cls, name: str, index: int) -> None:
+        handle = cls._widgets.get(name)
+        if handle is not None and cls._types.get(name) == "dropdown":
+            cls._backend().dropdown_set(handle, index)
+
+    @classmethod
+    def GetDropDownItemCount(cls, name: str) -> int:
+        handle = cls._widgets.get(name)
+        if handle is not None and cls._types.get(name) == "dropdown":
+            return cls._backend().dropdown_count(handle)
+        return 0
+
+    @classmethod
+    def GetDropDownItems(cls, name: str) -> list:
+        handle = cls._widgets.get(name)
+        if handle is not None and cls._types.get(name) == "dropdown":
+            return cls._backend().dropdown_items(handle)
+        return []
+
+    # ── Slider ────────────────────────────────────────────────────
+    @classmethod
+    def AddSlider(cls, minimum: int, maximum: int, left: int, top: int) -> str:
+        cls._backend().ensure()
+        cls._counter += 1
+        name = f"Slider{cls._counter}"
+
+        def on_change():
+            cls._last_changed_slider = name
+            if cls.SliderChanged:
+                cls.SliderChanged()
+
+        handle = cls._backend().add_slider(
+            minimum, maximum, left, top, callback=on_change)
+        cls._widgets[name] = handle
+        cls._types[name] = "slider"
+        return name
+
+    @classmethod
+    def GetSliderValue(cls, name: str) -> int:
+        handle = cls._widgets.get(name)
+        if handle is not None and cls._types.get(name) == "slider":
+            return cls._backend().slider_get(handle)
+        return 0
+
+    @classmethod
+    def SetSliderValue(cls, name: str, value: int) -> None:
+        handle = cls._widgets.get(name)
+        if handle is not None and cls._types.get(name) == "slider":
+            cls._backend().slider_set(handle, value)
+
+    # ── ProgressBar ───────────────────────────────────────────────
+    @classmethod
+    def AddProgressBar(cls, left: int, top: int) -> str:
+        cls._backend().ensure()
+        cls._counter += 1
+        name = f"ProgressBar{cls._counter}"
+        handle = cls._backend().add_progressbar(left, top)
+        cls._widgets[name] = handle
+        cls._types[name] = "progressbar"
+        return name
+
+    @classmethod
+    def GetProgressBarValue(cls, name: str) -> int:
+        handle = cls._widgets.get(name)
+        if handle is not None and cls._types.get(name) == "progressbar":
+            return cls._backend().progress_get(handle)
+        return 0
+
+    @classmethod
+    def SetProgressBarValue(cls, name: str, value: int) -> None:
+        handle = cls._widgets.get(name)
+        if handle is not None and cls._types.get(name) == "progressbar":
+            cls._backend().progress_set(handle, value)
+
+    # ── Table (2D array, first row = column headers) ─────────────
+    @classmethod
+    def AddTable(cls, data, left: int, top: int) -> str:
+        cls._backend().ensure()
+        cls._counter += 1
+        name = f"Table{cls._counter}"
+
+        def on_select():
+            cls._last_selected_table = name
+            if cls.TableRowSelected:
+                cls.TableRowSelected()
+
+        handle = cls._backend().add_table(data, left, top, callback=on_select)
+        cls._widgets[name] = handle
+        cls._types[name] = "table"
+        return name
+
+    @classmethod
+    def SetTableData(cls, name: str, data) -> None:
+        handle = cls._widgets.get(name)
+        if handle is not None and cls._types.get(name) == "table":
+            cls._backend().table_set_data(handle, data)
+
+    @classmethod
+    def GetSelectedTableRow(cls, name: str) -> int:
+        """Return the currently selected data row (1-based), or 0 if none."""
+        handle = cls._widgets.get(name)
+        if handle is not None and cls._types.get(name) == "table":
+            return cls._backend().table_selected_row(handle)
+        return 0

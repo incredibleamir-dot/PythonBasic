@@ -1,3 +1,11 @@
+# --------------------------------------------------------------------------
+# Python Small Basic
+# Purpose : Array object - named value stores accessed through Small Basic array semantics.
+# Version : 1.2.0
+# Author  : Amir Arshad
+# Email   : incredibleamir@gmail.com
+# --------------------------------------------------------------------------
+
 from typing import Any, Dict
 
 

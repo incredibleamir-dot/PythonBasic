@@ -1,3 +1,11 @@
+# --------------------------------------------------------------------------
+# Python Small Basic
+# Purpose : TextWindow object - console text input and output.
+# Version : 1.2.0
+# Author  : Amir Arshad
+# Email   : incredibleamir@gmail.com
+# --------------------------------------------------------------------------
+
 import sys
 from smallbasic._utils import classproperty, _PropSetMeta
 

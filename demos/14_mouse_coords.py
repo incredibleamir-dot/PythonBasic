@@ -2,7 +2,7 @@
 Demo 14: Mouse Coordinates — live mouse X/Y display on the GraphicsWindow
 """
 
-from smallbasic import GraphicsWindow, Shapes, Program
+from smallbasic import GraphicsWindow, Shapes, Program, Mouse
 
 GraphicsWindow.Title = "Mouse Coordinates Demo"
 GraphicsWindow.Width = 500
@@ -28,16 +28,22 @@ GraphicsWindow.PenColor = "Black"
 mouse_info = Shapes.AddText("")
 Shapes.Move(mouse_info, 20, 130)
 
-def on_mouse_move(event):
-    Shapes.SetText(coords, f"Mouse X: {event.x:>4}    Y: {event.y:>4}")
+def on_mouse_move():
+    Shapes.SetText(coords, f"Mouse X: {GraphicsWindow.MouseX:>4}    Y: {GraphicsWindow.MouseY:>4}")
 
-def on_mouse_down(event):
-    btn = {1: "Left", 2: "Middle", 3: "Right"}.get(event.num, f"Button{event.num}")
-    Shapes.SetText(mouse_info, f"{btn} button down at ({event.x}, {event.y})")
+def on_mouse_down():
+    if Mouse.IsLeftButtonDown:
+        btn = "Left"
+    elif Mouse.IsRightButtonDown:
+        btn = "Right"
+    else:
+        btn = "Middle"
+    Shapes.SetText(mouse_info,
+                   f"{btn} button down at ({GraphicsWindow.MouseX}, {GraphicsWindow.MouseY})")
 
-def on_mouse_up(event):
-    btn = {1: "Left", 2: "Middle", 3: "Right"}.get(event.num, f"Button{event.num}")
-    Shapes.SetText(mouse_info, f"{btn} button up at ({event.x}, {event.y})")
+def on_mouse_up():
+    Shapes.SetText(mouse_info,
+                   f"Button up at ({GraphicsWindow.MouseX}, {GraphicsWindow.MouseY})")
 
 GraphicsWindow.MouseMove = on_mouse_move
 GraphicsWindow.MouseDown = on_mouse_down

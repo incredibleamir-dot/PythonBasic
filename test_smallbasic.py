@@ -69,7 +69,7 @@ GraphicsState.pen_color = "Black"  # reset
 # ====================================================================
 print("\n=== 3. Renderer ===")
 
-check("ensure returns tk root", Renderer.ensure() is not None)
+check("ensure returns a window handle", Renderer.ensure() is not None)
 check("get_random_color returns hex",
       Renderer.get_random_color().startswith("#"))
 check("get_random_color 7 chars",
@@ -556,6 +556,92 @@ except Exception as e:
     GraphicsWindow.Hide()
 
 # ====================================================================
+# 22b. Extended Controls (dropdown, slider, progress bar, table)
+# ====================================================================
+print("\n=== 22b. Extended Controls ===")
+
+try:
+    GraphicsWindow.Show()
+    dd = Controls.AddDropDown(["A", "B", "C"], 10, 160)
+    check("AddDropDown returns str", isinstance(dd, str))
+    check("GetDropDownItemCount", Controls.GetDropDownItemCount(dd) == 3)
+    check("GetDropDownItems", Controls.GetDropDownItems(dd) == ["A", "B", "C"])
+    check("GetSelectedDropDownItem default", Controls.GetSelectedDropDownItem(dd) == "")
+    Controls.SetSelectedDropDownItem(dd, 1)
+    check("SetSelectedDropDownItem", Controls.GetSelectedDropDownItem(dd) == "B")
+
+    sl = Controls.AddSlider(0, 100, 10, 200)
+    check("AddSlider returns str", isinstance(sl, str))
+    Controls.SetSliderValue(sl, 42)
+    check("SetSliderValue/GetSliderValue", Controls.GetSliderValue(sl) == 42)
+
+    pb = Controls.AddProgressBar(10, 240)
+    check("AddProgressBar returns str", isinstance(pb, str))
+    Controls.SetProgressBarValue(pb, 75)
+    check("SetProgressBarValue/GetProgressBarValue", Controls.GetProgressBarValue(pb) == 75)
+    Controls.SetProgressBarValue(pb, 500)
+    check("ProgressBar clamped", Controls.GetProgressBarValue(pb) == 100)
+
+    table_data = [["Name", "Age"], ["Alice", 30], ["Bob", 25]]
+    tb2 = Controls.AddTable(table_data, 160, 160)
+    check("AddTable returns str", isinstance(tb2, str))
+    new_data = [["Name", "Age"], ["Carol", 40]]
+    Controls.SetTableData(tb2, new_data)
+    check("SetTableData", True)
+
+    Controls.Remove(dd)
+    check("Remove dropdown", True)
+    GraphicsWindow.Hide()
+except Exception as e:
+    check("Extended Controls", False, str(e))
+    GraphicsWindow.Hide()
+
+# ====================================================================
+# 22c. Extended Controls Events (slider, dropdown, table)
+# ====================================================================
+print("\n=== 22c. Extended Controls Events ===")
+
+try:
+    GraphicsWindow.Show()
+    events = []
+
+    Controls.SliderChanged = lambda: events.append(("slider", Controls.LastChangedSlider))
+    Controls.DropDownSelected = lambda: events.append(("dd", Controls.LastSelectedDropDown))
+    Controls.TableRowSelected = lambda: events.append(("table", Controls.LastSelectedTable))
+
+    sl_e = Controls.AddSlider(0, 100, 10, 200)
+    dd_e = Controls.AddDropDown(["X", "Y"], 10, 240)
+    tb_e = Controls.AddTable([["A", "B"], ["1", "2"], ["3", "4"]], 10, 280)
+
+    Controls.SetSliderValue(sl_e, 55)
+    check("SliderChanged fires on SetSliderValue", ("slider", sl_e) in events)
+    check("LastChangedSlider", Controls.LastChangedSlider == sl_e)
+
+    h_dd = Controls._widgets[dd_e]
+    h_dd.event_generate("<<ComboboxSelected>>")
+    check("DropDownSelected fires", ("dd", dd_e) in events)
+    check("LastSelectedDropDown", Controls.LastSelectedDropDown == dd_e)
+
+    h_tb = Controls._widgets[tb_e]
+    h_tb.selection_set(h_tb.get_children()[1])
+    h_tb.event_generate("<<TreeviewSelect>>")
+    check("TableRowSelected fires", ("table", tb_e) in events)
+    check("LastSelectedTable", Controls.LastSelectedTable == tb_e)
+    check("GetSelectedTableRow selected", Controls.GetSelectedTableRow(tb_e) == 2)
+    check("GetSelectedTableRow none", Controls.GetSelectedTableRow("nope") == 0)
+
+    Controls.Remove(sl_e)
+    Controls.Remove(dd_e)
+    Controls.Remove(tb_e)
+    Controls.SliderChanged = None
+    Controls.DropDownSelected = None
+    Controls.TableRowSelected = None
+    GraphicsWindow.Hide()
+except Exception as e:
+    check("Extended Controls Events", False, str(e))
+    GraphicsWindow.Hide()
+
+# ====================================================================
 # 23. Desktop
 # ====================================================================
 print("\n=== 23. Desktop ===")
@@ -596,6 +682,439 @@ GraphicsWindow.PenWidth = 2
 GraphicsWindow.FontBold = True
 check("FontBold in GState", GraphicsState.font_bold is True)
 GraphicsWindow.FontBold = False
+
+# ====================================================================
+# 27. Math — edge cases
+# ====================================================================
+print("\n=== 27. Math edge cases ===")
+
+check("Max() no args -> 0", Math.Max() == 0)
+check("Min() no args -> 0", Math.Min() == 0)
+check("Max(single) = value", Math.Max(7) == 7)
+check("Min(single) = value", Math.Min(7) == 7)
+check("Max floats", Math.Max(1.5, 1.2, 1.9) == 1.9)
+check("Sum() no args -> 0", Math.Sum() == 0)
+check("Average() no args -> 0.0", Math.Average() == 0.0)
+check("Sum negatives", Math.Sum(-1, -2, -3) == -6)
+check("Ceiling(3.0) -> 3", Math.Ceiling(3.0) == 3)
+check("Ceiling(-1.2) -> -1", Math.Ceiling(-1.2) == -1)
+check("Floor(-1.2) -> -2", Math.Floor(-1.2) == -2)
+check("Round(2.5) -> 2 (bankers)", Math.Round(2.5) == 2)
+check("Round(-2.5) -> -2", Math.Round(-2.5) == -2)
+check("Abs(0) -> 0", Math.Abs(0) == 0)
+check("Abs(-3.5) -> 3.5", Math.Abs(-3.5) == 3.5)
+check("SquareRoot(0) -> 0", Math.SquareRoot(0) == 0)
+check("Power(2,-1) -> 0.5", Math.Power(2, -1) == 0.5)
+check("Power(0,0) -> 1", Math.Power(0, 0) == 1.0)
+check("NaturalLog(1) -> 0", Math.NaturalLog(1) == 0.0)
+check("Log(100) -> 2", Math.Log(100) == 2.0)
+check("Sin(0) -> 0", abs(Math.Sin(0)) < 0.0001)
+check("Cos(90) ~ 0", abs(Math.Cos(90)) < 0.0001)
+check("ArcSin(2) clamped -> 90", Math.ArcSin(2) == 90.0)
+check("ArcCos(-2) clamped -> 180", Math.ArcCos(-2) == 180.0)
+check("ArcTan(1) -> 45", abs(Math.ArcTan(1) - 45) < 0.0001)
+check("GetDegrees(pi) ~ 180", abs(Math.GetDegrees(3.141592653589793) - 180) < 1e-9)
+check("GetRadians(180) ~ pi", abs(Math.GetRadians(180) - 3.141592653589793) < 1e-9)
+check("Remainder negative (python %)", Math.Remainder(-10, 3) == 2)
+check("Remainder zero dividend", Math.Remainder(0, 5) == 0)
+r = Math.GetRandomNumber(1)
+check("GetRandomNumber(1) -> 1", r == 1)
+r = Math.GetRandomNumber(0)
+check("GetRandomNumber(0) -> 1", r == 1)
+r = Math.GetRandomNumber(-3)
+check("GetRandomNumber(negative) -> 1", r == 1)
+for _ in range(20):
+    r = Math.GetRandomNumber(5)
+    assert 1 <= r <= 5
+check("GetRandomNumber in range (20x)", True)
+
+# ====================================================================
+# 28. Text — edge cases
+# ====================================================================
+print("\n=== 28. Text edge cases ===")
+
+check("Append coerces ints", Text.Append(1, 2) == "12")
+check("GetLength empty -> 0", Text.GetLength("") == 0)
+check("GetLength unicode", Text.GetLength("héllo") == 5)
+check("IsSubText empty needle", Text.IsSubText("hello", "") is True)
+check("IsSubText both empty", Text.IsSubText("", "") is True)
+check("StartsWith empty", Text.StartsWith("hello", "") is True)
+check("EndsWith empty", Text.EndsWith("hello", "") is True)
+check("StartsWith longer needle", Text.StartsWith("hi", "hello") is False)
+check("GetSubText start 1", Text.GetSubText("hello", 1, 3) == "hel")
+check("GetSubText start 0 clamped", Text.GetSubText("hello", 0, 2) == "he")
+check("GetSubText out of range", Text.GetSubText("hello", 10, 5) == "")
+check("GetSubText negative start", Text.GetSubText("hello", -5, 3) == "hel")
+check("GetSubText length 0", Text.GetSubText("hello", 2, 0) == "")
+check("GetSubTextToEnd end", Text.GetSubTextToEnd("hello", 5) == "o")
+check("GetSubTextToEnd past end", Text.GetSubTextToEnd("hello", 20) == "")
+check("GetIndexOf first match", Text.GetIndexOf("hello", "l") == 3)
+check("GetIndexOf empty needle", Text.GetIndexOf("hello", "") == 1)
+check("GetIndexOf case sensitive", Text.GetIndexOf("Hello", "h") == 0)
+check("GetCharacter code 0", Text.GetCharacter(0) == "\x00")
+check("GetCharacter unicode", Text.GetCharacter(233) == "é")
+check("GetCharacterCode first char", Text.GetCharacterCode("AB") == 65)
+check("ConvertToLowerCase unicode", Text.ConvertToLowerCase("ÄBC") == "äbc")
+check("ConvertToUpperCase digits", Text.ConvertToUpperCase("a1b") == "A1B")
+
+# ====================================================================
+# 29. Array — edge cases
+# ====================================================================
+print("\n=== 29. Array edge cases ===")
+
+Array.SetValue("edge_arr", 1, "numeric-index")
+check("SetValue numeric index", Array.GetValue("edge_arr", 1) == "numeric-index")
+Array.SetValue("edge_arr", "k", 42)
+check("SetValue mixed indices", Array.GetValue("edge_arr", "k") == 42)
+check("GetValue missing -> ''", Array.GetValue("edge_arr", "missing") == "")
+check("GetValue missing array -> ''", Array.GetValue("no_such_array", "x") == "")
+check("GetItemCount missing -> 0", Array.GetItemCount("no_such_array") == 0)
+check("ContainsIndex missing -> False", Array.ContainsIndex("no_such_array", "x") is False)
+check("ContainsValue missing -> False", Array.ContainsValue("no_such_array", "x") is False)
+check("GetAllIndices missing -> {}", Array.GetAllIndices("no_such_array") == {})
+check("IsArray tuple -> False", Array.IsArray((1, 2)) is False)
+check("IsArray None -> False", Array.IsArray(None) is False)
+check("IsArray int -> False", Array.IsArray(5) is False)
+check("ContainsIndex with dict", Array.ContainsIndex({"a": 1}, "a") is True)
+check("ContainsIndex with list -> False", Array.ContainsIndex([1, 2], 1) is False)
+check("GetItemCount with dict", Array.GetItemCount({"a": 1, "b": 2}) == 2)
+check("GetAllIndices with dict",
+      Array.GetAllIndices({"a": 1, "b": 2}) == {1: "a", 2: "b"})
+Array.RemoveValue("edge_arr", "missing")
+check("RemoveValue missing no-op", Array.ContainsIndex("edge_arr", "k") is True)
+Array.RemoveValue("edge_arr", 1)
+check("RemoveValue removed", Array.ContainsIndex("edge_arr", 1) is False)
+Array.RemoveValue("no_such_array", "x")
+check("RemoveValue missing array no-op", True)
+
+# ====================================================================
+# 30. Stack — edge cases
+# ====================================================================
+print("\n=== 30. Stack edge cases ===")
+
+check("GetCount missing -> 0", Stack.GetCount("no_such_stack") == 0)
+check("PopValue missing -> ''", Stack.PopValue("no_such_stack") == "")
+Stack.PushValue("s2", 42)
+check("PopValue non-string", Stack.PopValue("s2") == 42)
+obj = {"x": 1}
+Stack.PushValue("s2", obj)
+check("PopValue identity", Stack.PopValue("s2") is obj)
+Stack.PushValue("s2", None)
+check("PopValue None", Stack.PopValue("s2") is None)
+Stack.PushValue("s2", "a")
+Stack.PushValue("s3", "b")
+check("Stacks independent", Stack.GetCount("s2") == 1 and Stack.GetCount("s3") == 1)
+Stack.PopValue("s2")
+check("GetCount after pop -> 0", Stack.GetCount("s2") == 0)
+Stack.PopValue("s3")
+
+# ====================================================================
+# 31. File — edge cases
+# ====================================================================
+print("\n=== 31. File edge cases ===")
+
+check("ReadContents missing -> FAILED", File.ReadContents("_no_such_file_.txt") == "FAILED")
+check("LastError set on failure", isinstance(File.LastError, str) and len(File.LastError) > 0)
+
+# nested path creation
+nested = os.path.join(tempfile.gettempdir(), "sb_test_nested", "sub", "data.txt")
+check("WriteContents creates dirs", File.WriteContents(nested, "hi") == "SUCCESS")
+check("Nested read", File.ReadContents(nested) == "hi")
+os.remove(nested)
+os.rmdir(os.path.dirname(nested))
+os.rmdir(os.path.dirname(os.path.dirname(nested)))
+
+# line operations
+fd, lpath = tempfile.mkstemp(suffix=".txt")
+os.close(fd)
+File.WriteContents(lpath, "one\ntwo\nthree\n")
+check("ReadLine 2", File.ReadLine(lpath, 2) == "two")
+check("ReadLine beyond -> ''", File.ReadLine(lpath, 99) == "")
+check("ReadLine 0 -> ''", File.ReadLine(lpath, 0) == "")
+check("ReadLine missing file -> FAILED", File.ReadLine("_nope_.txt", 1) == "FAILED")
+check("WriteLine overwrites", File.WriteLine(lpath, 1, "ONE") == "SUCCESS")
+check("WriteLine applied", File.ReadLine(lpath, 1) == "ONE")
+check("WriteLine other intact", File.ReadLine(lpath, 2) == "two")
+check("WriteLine expands", File.WriteLine(lpath, 5, "five") == "SUCCESS")
+check("WriteLine expanded line", File.ReadLine(lpath, 5) == "five")
+check("InsertLine", File.InsertLine(lpath, 2, "INSERTED") == "SUCCESS")
+check("InsertLine shifted", File.ReadLine(lpath, 2) == "INSERTED")
+check("InsertLine old line2 moved", File.ReadLine(lpath, 3) == "two")
+check("InsertLine missing file -> FAILED", File.InsertLine("_nope_.txt", 1, "x") == "FAILED")
+
+# append / copy / delete
+apath = os.path.join(tempfile.gettempdir(), "sb_append.txt")
+File.DeleteFile(apath)
+check("AppendContents creates", File.AppendContents(apath, "x") == "SUCCESS")
+check("AppendContents content", File.ReadContents(apath) == "x")
+File.AppendContents(apath, "y")
+check("AppendContents appends", File.ReadContents(apath) == "xy")
+check("CopyFile missing source -> FAILED", File.CopyFile("_no_such_.txt", apath) == "FAILED")
+check("DeleteFile missing -> FAILED", File.DeleteFile("_no_such_.txt") == "FAILED")
+check("DeleteFile works", File.DeleteFile(apath) == "SUCCESS")
+
+# directory ops
+d1 = os.path.join(tempfile.gettempdir(), "sb_dir_a")
+d2 = os.path.join(tempfile.gettempdir(), "sb_dir_b")
+File.CreateDirectory(d1)
+File.CreateDirectory(d2)
+created = File.GetDirectories(tempfile.gettempdir())
+check("GetDirectories returns dict", isinstance(created, dict) and len(created) >= 1)
+check("GetFiles missing dir -> FAILED", File.GetFiles("_no_such_dir_") == "FAILED")
+check("GetDirectories missing -> FAILED", File.GetDirectories("_no_such_dir_") == "FAILED")
+file_g = File.GetFiles(tempfile.gettempdir())
+check("GetFiles returns dict", isinstance(file_g, dict))
+File.DeleteDirectory(d1)
+File.DeleteDirectory(d2)
+check("DeleteDirectory missing -> FAILED", File.DeleteDirectory("_no_such_dir_") == "FAILED")
+
+tmp = File.GetTemporaryFilePath()
+check("GetTemporaryFilePath exists", os.path.exists(tmp))
+File.DeleteFile(tmp)
+check("GetSettingsFilePath", File.GetSettingsFilePath().endswith("settings.txt"))
+
+# unicode round-trip
+upath = os.path.join(tempfile.gettempdir(), "sb_uni.txt")
+File.WriteContents(upath, "héllo wörld ☃")
+check("Unicode round-trip", File.ReadContents(upath) == "héllo wörld ☃")
+File.DeleteFile(upath)
+
+# ====================================================================
+# 32. Program / Clock / Mouse — edge cases
+# ====================================================================
+print("\n=== 32. Program / Clock / Mouse edge cases ===")
+
+check("GetArgument(0) -> ''", Program.GetArgument(0) == "")
+check("GetArgument big -> ''", Program.GetArgument(9999) == "")
+check("ArgumentCount is int", isinstance(Program.ArgumentCount, int) and Program.ArgumentCount >= 0)
+check("Clock.Date 3 parts", len(Clock.Date.split("/")) == 3)
+check("Clock.Time 3 parts", len(Clock.Time.split(":")) == 3)
+check("Mouse.MouseX int", isinstance(Mouse.MouseX, int))
+check("Mouse.MouseY int", isinstance(Mouse.MouseY, int))
+check("IsLeftButtonDown bool", isinstance(Mouse.IsLeftButtonDown, bool))
+
+# ====================================================================
+# 33. GraphicsWindow — property / API edge cases
+# ====================================================================
+print("\n=== 33. GraphicsWindow edge cases ===")
+
+try:
+    GraphicsWindow.GraphicsEngine
+    check("GraphicsEngine removed", False)
+except AttributeError:
+    check("GraphicsEngine removed", True)
+
+try:
+    GraphicsWindow.NonExistentProperty
+    check("Unknown property raises", False)
+except AttributeError:
+    check("Unknown property raises", True)
+
+check("color clamp low/high", Renderer.get_color_from_rgb(-5, 300, 128) == "#00FF80")
+check("color clamp exact", Renderer.get_color_from_rgb(0, 0, 0) == "#000000")
+check("color clamp white", Renderer.get_color_from_rgb(255, 255, 255) == "#FFFFFF")
+
+from smallbasic._backends import create_backend as _cb, Backend as _B
+check("create_backend -> TKINTER", _cb().name == "TKINTER")
+check("backend is TkBackend", Renderer.backend().name == "TKINTER")
+check("Backend has no add_tree", not hasattr(_B, "add_tree"))
+import smallbasic._backends as _be
+check("register_backend removed", not hasattr(_be, "register_backend"))
+check("available_backends removed", not hasattr(_be, "available_backends"))
+check("AddTreeView removed", not hasattr(Controls, "AddTreeView"))
+
+# ====================================================================
+# 34. Controls — edge cases
+# ====================================================================
+print("\n=== 34. Controls edge cases ===")
+
+try:
+    GraphicsWindow.Show()
+
+    # missing-control safety
+    check("GetButtonCaption missing -> ''", Controls.GetButtonCaption("Nope") == "")
+    check("SetButtonCaption missing no-op", (Controls.SetButtonCaption("Nope", "x"), True)[1])
+    check("GetTextBoxText missing -> ''", Controls.GetTextBoxText("Nope") == "")
+    check("SetTextBoxText missing no-op", (Controls.SetTextBoxText("Nope", "x"), True)[1])
+    check("Move missing no-op", (Controls.Move("Nope", 1, 1), True)[1])
+    check("SetSize missing no-op", (Controls.SetSize("Nope", 1, 1), True)[1])
+    check("HideControl missing no-op", (Controls.HideControl("Nope"), True)[1])
+    check("ShowControl missing no-op", (Controls.ShowControl("Nope"), True)[1])
+    check("Remove missing no-op", (Controls.Remove("Nope"), True)[1])
+    check("GetSliderValue missing -> 0", Controls.GetSliderValue("Nope") == 0)
+    check("SetSliderValue missing no-op", (Controls.SetSliderValue("Nope", 5), True)[1])
+    check("GetProgressBarValue missing -> 0", Controls.GetProgressBarValue("Nope") == 0)
+    check("SetProgressBarValue missing no-op", (Controls.SetProgressBarValue("Nope", 5), True)[1])
+    check("GetSelectedDropDownItem missing -> ''", Controls.GetSelectedDropDownItem("Nope") == "")
+    check("GetDropDownItemCount missing -> 0", Controls.GetDropDownItemCount("Nope") == 0)
+    check("GetDropDownItems missing -> []", Controls.GetDropDownItems("Nope") == [])
+    check("SetTableData missing no-op", (Controls.SetTableData("Nope", []), True)[1])
+
+    # dropdown edge cases
+    dd_e = Controls.AddDropDown([], 10, 20)
+    check("AddDropDown empty", isinstance(dd_e, str))
+    check("DropDown empty count 0", Controls.GetDropDownItemCount(dd_e) == 0)
+    check("DropDown empty items", Controls.GetDropDownItems(dd_e) == [])
+    check("DropDown empty selected ''", Controls.GetSelectedDropDownItem(dd_e) == "")
+    dd_d = Controls.AddDropDown({"1": "One", "2": "Two"}, 10, 60)
+    check("AddDropDown dict values", Controls.GetDropDownItems(dd_d) == ["One", "Two"])
+    Controls.SetSelectedDropDownItem(dd_d, 99)
+    check("DropDown out-of-range no crash", True)
+
+    # slider clamp
+    sl_e = Controls.AddSlider(0, 100, 10, 100)
+    Controls.SetSliderValue(sl_e, 999)
+    check("Slider clamp high", Controls.GetSliderValue(sl_e) == 100)
+    Controls.SetSliderValue(sl_e, -50)
+    check("Slider clamp low", Controls.GetSliderValue(sl_e) == 0)
+    Controls.SetSliderValue(sl_e, 42.9)
+    check("Slider returns int", isinstance(Controls.GetSliderValue(sl_e), int))
+
+    # progress bar clamp
+    pb_e = Controls.AddProgressBar(10, 140)
+    Controls.SetProgressBarValue(pb_e, -5)
+    check("ProgressBar clamp low", Controls.GetProgressBarValue(pb_e) == 0)
+    Controls.SetProgressBarValue(pb_e, 123)
+    check("ProgressBar clamp high", Controls.GetProgressBarValue(pb_e) == 100)
+
+    # table edge cases
+    t_e = Controls.AddTable([], 10, 180)
+    check("AddTable empty ok", isinstance(t_e, str))
+    t_h = Controls.AddTable([["A", "B"]], 10, 220)
+    check("AddTable headers-only ok", isinstance(t_h, str))
+    t_u = Controls.AddTable([["A", "B"], ["x"]], 10, 260)
+    check("AddTable uneven rows ok", isinstance(t_u, str))
+    Controls.SetTableData(t_u, [["A", "B", "C"], ["1", "2", "3"]])
+    check("SetTableData new headers ok", True)
+
+    GraphicsWindow.Hide()
+except Exception as e:
+    check("Controls edge cases", False, str(e))
+    GraphicsWindow.Hide()
+
+# ====================================================================
+# 35. Shapes — edge cases
+# ====================================================================
+print("\n=== 35. Shapes edge cases ===")
+
+try:
+    GraphicsWindow.Show()
+    check("GetLeft missing -> 0", Shapes.GetLeft("Nope") == 0)
+    check("GetTop missing -> 0", Shapes.GetTop("Nope") == 0)
+    check("GetOpacity missing -> 100", Shapes.GetOpacity("Nope") == 100)
+    check("Move missing no-op", (Shapes.Move("Nope", 1, 1), True)[1])
+    check("Rotate missing no-op", (Shapes.Rotate("Nope", 45), True)[1])
+    check("Zoom missing no-op", (Shapes.Zoom("Nope", 2, 2), True)[1])
+    check("Animate missing no-op", (Shapes.Animate("Nope", 1, 1, 50), True)[1])
+    check("SetText missing no-op", (Shapes.SetText("Nope", "x"), True)[1])
+    check("HideShape missing no-op", (Shapes.HideShape("Nope"), True)[1])
+    check("ShowShape missing no-op", (Shapes.ShowShape("Nope"), True)[1])
+    check("Remove missing no-op", (Shapes.Remove("Nope"), True)[1])
+
+    s1 = Shapes.AddRectangle(10, 10)
+    s2 = Shapes.AddRectangle(10, 10)
+    check("Shapes unique names", s1 != s2)
+    Shapes.SetOpacity(s1, 150)
+    check("SetOpacity clamp high", Shapes.GetOpacity(s1) == 100)
+    Shapes.SetOpacity(s1, -3)
+    check("SetOpacity clamp low", Shapes.GetOpacity(s1) == 0)
+    Shapes.Zoom(s1, 0.001, 0.001)
+    check("Zoom clamp no crash", True)
+    Shapes.Animate(s1, 50, 50, 0)
+    check("Animate duration 0", True)
+    Shapes.Remove(s1)
+    Shapes.Remove(s2)
+
+    GraphicsWindow.Hide()
+except Exception as e:
+    check("Shapes edge cases", False, str(e))
+    GraphicsWindow.Hide()
+
+# ====================================================================
+# 36. Turtle — edge cases
+# ====================================================================
+print("\n=== 36. Turtle edge cases ===")
+
+t_old_speed = Turtle.Speed
+Turtle.Speed = 99
+check("Speed clamp high", Turtle.Speed == 10)
+Turtle.Speed = -5
+check("Speed clamp low", Turtle.Speed == 1)
+Turtle.Speed = t_old_speed
+check("Speed restored", Turtle.Speed == t_old_speed)
+
+t_old_angle = Turtle.Angle
+Turtle.Turn(360)
+check("Turn(360) -> 0", abs(Turtle.Angle) < 0.01)
+Turtle.Turn(-90)
+check("Turn(-90) -> 270", abs(Turtle.Angle - 270) < 0.01)
+Turtle.Turn(720)
+check("Turn wraps", abs(Turtle.Angle - 270) < 0.01)
+Turtle.Angle = t_old_angle
+
+t_old_x, t_old_y = Turtle.X, Turtle.Y
+Turtle.X = "100.5"
+check("X setter accepts str", Turtle.X == 100.5)
+Turtle.X, Turtle.Y = t_old_x, t_old_y
+
+# ====================================================================
+# 37. Sound — edge cases (no sound emitted)
+# ====================================================================
+print("\n=== 37. Sound edge cases ===")
+
+check("PlayMusic empty no crash", (Sound.PlayMusic(""), True)[1])
+check("Play missing wav no crash", (Sound.Play("_no_such_.wav"), True)[1])
+check("Stop no crash", (Sound.Stop(), True)[1])
+check("Pause no crash", (Sound.Pause(), True)[1])
+check("Resume no crash", (Sound.Resume(), True)[1])
+Sound.WavFile = "_no_such_.wav"
+check("WavFile missing duration 0", Sound.WavDuration == 0.0)
+check("WavPlay missing no-op", (Sound.WavPlay(), True)[1])
+check("WavPause missing no-op", (Sound.WavPause(), True)[1])
+check("WavStop missing no-op", (Sound.WavStop(), True)[1])
+check("PlayPosition 0", Sound.PlayPosition == 0.0)
+check("WavPlaying False", Sound.WavPlaying is False)
+
+# ====================================================================
+# 38. ImageList — real image load/draw
+# ====================================================================
+print("\n=== 38. ImageList edge cases ===")
+
+try:
+    from PIL import Image
+    img_path = os.path.join(tempfile.gettempdir(), "sb_test_img.png")
+    Image.new("RGB", (10, 20), (255, 0, 0)).save(img_path)
+    name = ImageList.LoadImage(img_path)
+    check("LoadImage real returns name", name == "sb_test_img.png")
+    check("GetWidthOfImage 10", ImageList.GetWidthOfImage(name) == 10)
+    check("GetHeightOfImage 20", ImageList.GetHeightOfImage(name) == 20)
+    GraphicsWindow.Show()
+    GraphicsWindow.DrawImage(name, 0, 0)
+    check("DrawImage real", True)
+    GraphicsWindow.DrawResizedImage(name, 50, 0, 5, 5)
+    check("DrawResizedImage real", True)
+    GraphicsWindow.Hide()
+    os.remove(img_path)
+except Exception as e:
+    check("ImageList real image", False, str(e))
+    GraphicsWindow.Hide()
+
+# ====================================================================
+# 39. Desktop / Network (offline-safe) / Timer
+# ====================================================================
+print("\n=== 39. Desktop / Network / Timer edge cases ===")
+
+check("Desktop.Width int", isinstance(Desktop.Width, int) and Desktop.Width > 0)
+check("Desktop.Height int", isinstance(Desktop.Height, int) and Desktop.Height > 0)
+check("SetWallPaper missing no crash", (Desktop.SetWallPaper("_no_such_.jpg"), True)[1])
+
+net = Network.GetWebPageContents("not-a-valid-url")
+check("Network invalid URL returns Error", net.startswith("Error:") or net.startswith("HTTP"))
+
+t_old_interval = Timer.Interval
+Timer.Interval = 0
+check("Timer.Interval 0 accepted", Timer.Interval == 0)
+Timer.Interval = t_old_interval
 
 # ====================================================================
 # Summary

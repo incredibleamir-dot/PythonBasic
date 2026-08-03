@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-08-03
+
+### Changed
+
+- **Dear PyGui (DPG) removed entirely.** The library now runs on a single pure-tkinter
+  engine (`_backends.py`). All backend/engine selection (`GraphicsEngine`,
+  `create_backend(name)`, dual-engine logic) was deleted — `create_backend()` takes no
+  argument and always returns the tkinter `TkBackend`. This removes the hard DPG
+  dependency and the console spam DPG emitted at shutdown.
+- **Treeview control removed.** `Controls.AddTreeView` and the backend `add_tree` /
+  `SetTableData(tree)` table variant were dropped in favour of the cleaner
+  `Controls.AddTable` (2D array, first row = headers).
+- **`Controls.KeyTyped` remains unimplemented** (focus management with real widgets).
+
+### Added
+
+- **Events for the extended controls**, following the existing
+  `ButtonClicked` / `TextTyped` pattern (handlers take **no arguments**):
+  - `Controls.SliderChanged` — fires on any slider change (drag **and**
+    programmatic `SetSliderValue`). Use `Controls.LastChangedSlider`.
+  - `Controls.DropDownSelected` — fires when a dropdown item is picked.
+    Use `Controls.LastSelectedDropDown`.
+  - `Controls.TableRowSelected` — fires when a table row is selected.
+    Use `Controls.LastSelectedTable` and `Controls.GetSelectedTableRow(name)`
+    (returns the 1-based row index, or `0` if none).
+- **`Controls.GetSelectedTableRow(name)`** — returns the currently selected row.
+- Author / version header block (`# Purpose`, `# Version`, `# Author`, `# Email`)
+  added to all 25 core modules.
+- **Test suite expanded to 427 checks** (new section 22c covers the extended-control
+  events: slider trace, dropdown selection, table selection).
+
+### Fixed
+
+- **Graphics event handlers are now no-argument.** The tkinter backend dispatches
+  callbacks with `cb()` — no `tk.Event` is passed, so `def on_key():` works instead of
+  raising `TypeError` (previously the callback had to accept the internal event). The
+  event state is read through the public API: `GraphicsWindow.LastKey`, `LastText`,
+  `MouseX`, `MouseY`.
+- **Demos now use only the public Small Basic API** — removed `import os`,
+  `import time`, `print()`, and internal `event.x` / `event.num` / `event.key`
+  attributes from `demos/08`, `10`, `11`, `13`, `14`. `demos/13_wav_player.py`
+  no longer relies on `os.path`; it looks for `sample-speech-1m.wav` in the current
+  directory.
+- **`demos/99_all_features.py`** is retained as a kitchen-sink reference; it still
+  uses `print`, `os`, `time` and the internal `_wav_*` helpers and is **not** a
+  pure-API example.
+
 ## [1.4.0] - 2026-07-31
 
 ### Fixed

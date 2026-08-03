@@ -1,3 +1,11 @@
+# --------------------------------------------------------------------------
+# Python Small Basic
+# Purpose : Keywords object - documentation placeholder mapping Small Basic keywords.
+# Version : 1.2.0
+# Author  : Amir Arshad
+# Email   : incredibleamir@gmail.com
+# --------------------------------------------------------------------------
+
 class Keywords:
     """
     Documentation placeholder for Small Basic keywords.

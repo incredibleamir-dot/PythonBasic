@@ -1,3 +1,11 @@
+# --------------------------------------------------------------------------
+# Python Small Basic
+# Purpose : Shapes object - add, move, rotate, zoom, hide and animate shapes.
+# Version : 1.2.0
+# Author  : Amir Arshad
+# Email   : incredibleamir@gmail.com
+# --------------------------------------------------------------------------
+
 """
 Shapes — add, move, rotate, animate shapes on the Graphics Window.
 
@@ -53,64 +61,43 @@ class Shapes:
         return name
 
     @classmethod
+    def _default_style(cls):
+        return {"outline": GraphicsState.pen_color,
+                "width": GraphicsState.pen_width}
+
+    @classmethod
     def AddRectangle(cls, width: int, height: int) -> str:
         Renderer.ensure()
-        cid = None
-        coords = (0, 0, width, height)
-        if Renderer._canvas:
-            cid = Renderer._canvas.create_rectangle(
-                *coords,
-                outline=GraphicsState.pen_color,
-                width=GraphicsState.pen_width
-            )
-            Renderer.update()
-        shape = _Shape("", cid, "rectangle", coords)
+        cid = Renderer.create_rectangle(0, 0, width, height,
+                                        **cls._default_style())
+        shape = _Shape("", cid, "rectangle", (0, 0, width, height))
         return cls._add_shape(shape)
 
     @classmethod
     def AddEllipse(cls, width: int, height: int) -> str:
         Renderer.ensure()
-        cid = None
-        coords = (0, 0, width, height)
-        if Renderer._canvas:
-            cid = Renderer._canvas.create_oval(
-                *coords,
-                outline=GraphicsState.pen_color,
-                width=GraphicsState.pen_width
-            )
-            Renderer.update()
-        shape = _Shape("", cid, "ellipse", coords)
+        cid = Renderer.create_oval(0, 0, width, height,
+                                   **cls._default_style())
+        shape = _Shape("", cid, "ellipse", (0, 0, width, height))
         return cls._add_shape(shape)
 
     @classmethod
     def AddTriangle(cls, x1: int, y1: int, x2: int, y2: int,
                     x3: int, y3: int) -> str:
         Renderer.ensure()
-        cid = None
         coords = (x1, y1, x2, y2, x3, y3)
-        if Renderer._canvas:
-            cid = Renderer._canvas.create_polygon(
-                *coords,
-                outline=GraphicsState.pen_color,
-                width=GraphicsState.pen_width,
-                fill=""
-            )
-            Renderer.update()
+        cid = Renderer.create_polygon(coords, fill="",
+                                      **cls._default_style())
         shape = _Shape("", cid, "polygon", coords)
         return cls._add_shape(shape)
 
     @classmethod
     def AddLine(cls, x1: int, y1: int, x2: int, y2: int) -> str:
         Renderer.ensure()
-        cid = None
         coords = (x1, y1, x2, y2)
-        if Renderer._canvas:
-            cid = Renderer._canvas.create_line(
-                *coords,
-                fill=GraphicsState.pen_color,
-                width=GraphicsState.pen_width
-            )
-            Renderer.update()
+        cid = Renderer.create_line(x1, y1, x2, y2,
+                                   fill=GraphicsState.pen_color,
+                                   width=GraphicsState.pen_width)
         shape = _Shape("", cid, "line", coords)
         shape.x, shape.y = x1, y1
         return cls._add_shape(shape)
@@ -118,33 +105,23 @@ class Shapes:
     @classmethod
     def AddImage(cls, image_name: str) -> str:
         Renderer.ensure()
-        cid = None
-        coords = (0, 0)
-        if Renderer._canvas:
-            from smallbasic.imagelist import ImageList
-            img = ImageList._tk_images.get(image_name)
-            if img:
-                cid = Renderer._canvas.create_image(0, 0, image=img, anchor="nw")
-                Renderer.update()
-        shape = _Shape("", cid, "image", coords)
+        from smallbasic.imagelist import ImageList
+        img = ImageList._backend_images.get(image_name)
+        cid = Renderer.create_image(0, 0, img, anchor="nw") if img else None
+        shape = _Shape("", cid, "image", (0, 0))
         return cls._add_shape(shape)
 
     @classmethod
     def AddText(cls, text: str) -> str:
         Renderer.ensure()
-        cid = None
-        coords = (0, 0)
-        if Renderer._canvas:
-            s = GraphicsState
-            weight = "bold" if s.font_bold else "normal"
-            slant = "italic" if s.font_italic else "roman"
-            cid = Renderer._canvas.create_text(
-                0, 0, text=text, anchor="nw",
-                font=(s.font_name, s.font_size, weight, slant),
-                fill=s.pen_color
-            )
-            Renderer.update()
-        shape = _Shape("", cid, "text", coords)
+        s = GraphicsState
+        weight = "bold" if s.font_bold else "normal"
+        slant = "italic" if s.font_italic else "roman"
+        cid = Renderer.create_text(
+            0, 0, text, anchor="nw",
+            font=(s.font_name, s.font_size, weight, slant),
+            fill=s.pen_color)
+        shape = _Shape("", cid, "text", (0, 0))
         return cls._add_shape(shape)
 
     @classmethod
@@ -166,21 +143,19 @@ class Shapes:
         if not shape:
             return
         if shape.canvas_id:
-            canvas = Renderer._canvas
-            if canvas:
-                if shape.shape_type in ("text", "image"):
-                    canvas.coords(shape.canvas_id, x, y)
-                else:
-                    dx = x - shape.x
-                    dy = y - shape.y
-                    current = canvas.coords(shape.canvas_id)
-                    if current:
-                        new_coords = tuple(
-                            current[i] + (dx if i % 2 == 0 else dy)
-                            for i in range(len(current))
-                        )
-                        canvas.coords(shape.canvas_id, *new_coords)
-                Renderer.update()
+            if shape.shape_type in ("text", "image"):
+                Renderer.coords(shape.canvas_id, x, y)
+            else:
+                dx = x - shape.x
+                dy = y - shape.y
+                current = Renderer.coords(shape.canvas_id)
+                if current:
+                    new_coords = tuple(
+                        current[i] + (dx if i % 2 == 0 else dy)
+                        for i in range(len(current))
+                    )
+                    Renderer.coords(shape.canvas_id, *new_coords)
+            Renderer.update()
         shape.x, shape.y = x, y
 
     @classmethod
@@ -230,7 +205,8 @@ class Shapes:
             Renderer.begin_batch()
             cls.Move(shape_name, int(cx), int(cy))
             Renderer.end_batch()
-            time.sleep(0.016)
+            if i < steps:
+                Renderer.pump_wait(16)
 
     @classmethod
     def GetLeft(cls, shape_name: str) -> int:

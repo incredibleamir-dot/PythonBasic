@@ -58,7 +58,6 @@ while count <= 3:
     count += 1
 
 # While loop with condition
-import time
 remaining = 5
 TextWindow.WriteLine("Countdown with while:")
 while remaining > 0:

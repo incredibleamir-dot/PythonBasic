@@ -1,144 +1,118 @@
-"""
-Internal Renderer — owns every interaction with the tkinter Canvas.
+# --------------------------------------------------------------------------
+# Python Small Basic
+# Purpose : Renderer facade - object registry, batching and all high-level drawing operations.
+# Version : 1.2.0
+# Author  : Amir Arshad
+# Email   : incredibleamir@gmail.com
+# --------------------------------------------------------------------------
 
-No other module should call Canvas methods directly.
-All drawing, object management, and display updates go through here.
+"""
+Internal Renderer — facade over the active graphics backend.
+
+The Renderer owns the object registry, the batch/update machinery and
+the drawing high-level operations.  All backend-specific window and
+canvas interaction is delegated to the tkinter backend
+(see ``smallbasic._backends``).
+
+No other module should call backend/Canvas methods directly; use the
+Renderer methods (including ``create_*``/``coords``/``itemconfig``).
 """
 
-import tkinter as tk
-import math
 import random
 import sys
 import time
 from typing import Optional, Any
 from smallbasic._state import GraphicsState
+from smallbasic._backends import create_backend, Backend
 
 
 class Renderer:
-    """Singleton-style renderer that owns the tkinter window and canvas."""
+    """Singleton-style renderer facade that owns the graphics window."""
 
-    _root: Optional[tk.Tk] = None
-    _canvas: Optional[tk.Canvas] = None
-    _objects: dict = {}        # canvas id -> metadata dict
+    _backend: Optional[Backend] = None
+    _root: Any = None
+    _canvas: Any = None
+    _objects: dict = {}
     _resized_images: dict = {}
     _shown: bool = False
-    _batch_count: int = 0      # > 0 when inside begin_batch / end_batch
-    _batch_dirty: bool = False # True if update was called while batching
+    _batch_count: int = 0
+    _batch_dirty: bool = False
+
+    # ── Backend selection ────────────────────────────────────────
+
+    @classmethod
+    def backend(cls) -> Backend:
+        if cls._backend is None:
+            cls._backend = create_backend()
+            cls._backend.ensure()
+            cls._sync_handles()
+        return cls._backend
+
+    @classmethod
+    def reset_backend(cls) -> None:
+        """Forget the active backend (used by tests)."""
+        cls._backend = None
+        cls._root = None
+        cls._canvas = None
+        cls._shown = False
+        cls._objects.clear()
+        cls._resized_images.clear()
+
+    @classmethod
+    def _sync_handles(cls) -> None:
+        """Mirror backend window/canvas handles for backward compat."""
+        b = cls._backend
+        if b is not None:
+            cls._root = getattr(b, "_root", None) or getattr(b, "_window", None)
+            cls._canvas = getattr(b, "_canvas", None)
 
     # ── Window management ──────────────────────────────────────────
 
     @classmethod
-    def ensure(cls) -> tk.Tk:
-        if cls._root is None:
-            cls._root = tk.Tk()
-            cls._root.withdraw()
-            cls._root.protocol("WM_DELETE_WINDOW", cls._on_close)
-        return cls._root
+    def ensure(cls) -> Any:
+        return cls.backend() or getattr(cls, "_root", None)
 
     @classmethod
     def _on_close(cls):
-        if cls._root:
-            cls._root.withdraw()
+        if cls._backend:
+            cls._backend._on_close()
+            cls._sync_handles()
 
     @classmethod
     def show(cls):
-        cls.ensure()
-        if cls._canvas is None:
-            s = GraphicsState
-            cls._canvas = tk.Canvas(
-                cls._root,
-                width=s.width,
-                height=s.height,
-                bg=s.bg_color,
-                highlightthickness=0
-            )
-            cls._canvas.pack()
-            cls._canvas.bind("<Key>", cls._on_key)
-            cls._canvas.bind("<KeyRelease>", cls._on_key_up)
-            for b in ("1", "2", "3"):
-                cls._canvas.bind(f"<Button-{b}>", cls._on_mouse_down)
-                cls._canvas.bind(f"<ButtonRelease-{b}>", cls._on_mouse_up)
-            cls._canvas.bind("<Motion>", cls._on_mouse_move)
-            cls._canvas.focus_set()
-        if not cls._shown:
-            s = GraphicsState
-            cls._root.deiconify()
-            cls._root.title(s.title)
-            cls._root.geometry(f"{s.width}x{s.height}+{s.left}+{s.top}")
-            cls._root.resizable(s.can_resize, s.can_resize)
-            cls._do_update()
-            cls._shown = True
+        cls.backend().show()
+        cls._sync_handles()
+        cls._shown = True
 
     @classmethod
     def hide(cls):
-        if cls._root:
-            cls._root.withdraw()
+        if cls._backend:
+            cls._backend.hide()
             cls._shown = False
 
     @classmethod
     def wait_for_close(cls):
-        if cls._root:
-            cls._root.mainloop()
+        if cls._backend:
+            cls._backend.wait_for_close()
 
     @classmethod
     def destroy(cls):
-        if cls._root:
-            cls._root.destroy()
-            cls._root = None
-            cls._canvas = None
-            cls._objects.clear()
-
-    # ── Event handlers ─────────────────────────────────────────────
-
-    @classmethod
-    def _on_key(cls, event):
-        GraphicsState.last_key = event.keysym
-        GraphicsState.last_text = event.char
-        if cls._root:
-            if GraphicsState.KeyDown:
-                cls._root.after_idle(lambda e=event: GraphicsState.KeyDown(e))
-            if GraphicsState.TextInput:
-                cls._root.after_idle(lambda e=event: GraphicsState.TextInput(e))
-
-    @classmethod
-    def _on_key_up(cls, event):
-        GraphicsState.last_key = event.keysym
-        if GraphicsState.KeyUp and cls._root:
-            cls._root.after_idle(lambda e=event: GraphicsState.KeyUp(e))
-
-    @classmethod
-    def _on_mouse_down(cls, event):
-        GraphicsState.mouse_x = event.x
-        GraphicsState.mouse_y = event.y
-        if GraphicsState.MouseDown and cls._root:
-            cls._root.after_idle(lambda e=event: GraphicsState.MouseDown(e))
-
-    @classmethod
-    def _on_mouse_up(cls, event):
-        GraphicsState.mouse_x = event.x
-        GraphicsState.mouse_y = event.y
-        if GraphicsState.MouseUp and cls._root:
-            cls._root.after_idle(lambda e=event: GraphicsState.MouseUp(e))
-
-    @classmethod
-    def _on_mouse_move(cls, event):
-        GraphicsState.mouse_x = event.x
-        GraphicsState.mouse_y = event.y
-        if GraphicsState.MouseMove and cls._root:
-            cls._root.after_idle(lambda e=event: GraphicsState.MouseMove(e))
+        if cls._backend:
+            cls._backend.destroy()
+        cls._root = None
+        cls._canvas = None
+        cls._objects.clear()
+        cls._resized_images.clear()
+        cls._shown = False
 
     # ── Batch support ──────────────────────────────────────────────
 
     @classmethod
     def begin_batch(cls):
-        """Begin a batch scope.  Calls to update() inside the scope
-        are deferred until end_batch() is called."""
         cls._batch_count += 1
 
     @classmethod
     def end_batch(cls):
-        """End a batch scope.  If this was the outermost scope and
-        updates were deferred, a single update is fired now."""
         if cls._batch_count > 0:
             cls._batch_count -= 1
         if cls._batch_count == 0 and cls._batch_dirty:
@@ -147,16 +121,13 @@ class Renderer:
 
     @classmethod
     def _do_update(cls):
-        """Internal — unconditionally calls root.update()."""
-        if cls._root:
-            cls._root.update()
+        if cls._backend:
+            cls._backend.update()
 
     # ── Display update ─────────────────────────────────────────────
 
     @classmethod
     def update(cls):
-        """Request a display update.  If inside a batch scope the
-        update is deferred until the batch ends."""
         if cls._batch_count > 0:
             cls._batch_dirty = True
             return
@@ -164,82 +135,50 @@ class Renderer:
 
     @classmethod
     def flush(cls):
-        """Force an immediate full display flush (used by Turtle).
-        Ends any active batch scope."""
         cls._batch_count = 0
         cls._batch_dirty = False
-        if not cls._root:
-            return
-        cls._root.update_idletasks()
-        if sys.platform == 'win32':
-            import ctypes.wintypes
-            hwnd = ctypes.wintypes.HWND(cls._root.winfo_id())
-            ctypes.windll.user32.UpdateWindow(hwnd)
-        else:
-            cls._root.update()
+        if cls._backend:
+            cls._backend.flush()
 
     # ── Drawing operations ─────────────────────────────────────────
 
     @classmethod
-    def draw_rectangle(cls, x: int, y: int, w: int, h: int,
-                       fill: str = "") -> Optional[int]:
-        cls.ensure()
-        if not cls._canvas:
-            return None
+    def _style(cls):
         s = GraphicsState
-        cid = cls._canvas.create_rectangle(
-            x, y, x + w, y + h,
-            outline=s.pen_color,
-            width=s.pen_width,
-            fill=fill if fill else ""
-        )
+        return {
+            "outline": s.pen_color,
+            "width": s.pen_width,
+            "fill": s.brush_color,
+        }
+
+    @classmethod
+    def draw_rectangle(cls, x: int, y: int, w: int, h: int) -> Optional[int]:
+        s = GraphicsState
+        cid = cls.backend().create_rectangle(
+            x, y, w, h, outline=s.pen_color, width=s.pen_width, fill="")
         cls._register(cid, "rectangle")
         cls.update()
         return cid
 
     @classmethod
     def fill_rectangle(cls, x: int, y: int, w: int, h: int) -> Optional[int]:
-        cls.ensure()
-        if not cls._canvas:
-            return None
-        s = GraphicsState
-        cid = cls._canvas.create_rectangle(
-            x, y, x + w, y + h,
-            fill=s.brush_color,
-            outline=s.pen_color,
-            width=s.pen_width
-        )
+        cid = cls.backend().create_rectangle(x, y, w, h, **cls._style())
         cls._register(cid, "rectangle")
         cls.update()
         return cid
 
     @classmethod
     def draw_ellipse(cls, x: int, y: int, w: int, h: int) -> Optional[int]:
-        cls.ensure()
-        if not cls._canvas:
-            return None
         s = GraphicsState
-        cid = cls._canvas.create_oval(
-            x, y, x + w, y + h,
-            outline=s.pen_color,
-            width=s.pen_width
-        )
+        cid = cls.backend().create_oval(x, y, w, h, outline=s.pen_color,
+                                        width=s.pen_width, fill="")
         cls._register(cid, "ellipse")
         cls.update()
         return cid
 
     @classmethod
     def fill_ellipse(cls, x: int, y: int, w: int, h: int) -> Optional[int]:
-        cls.ensure()
-        if not cls._canvas:
-            return None
-        s = GraphicsState
-        cid = cls._canvas.create_oval(
-            x, y, x + w, y + h,
-            fill=s.brush_color,
-            outline=s.pen_color,
-            width=s.pen_width
-        )
+        cid = cls.backend().create_oval(x, y, w, h, **cls._style())
         cls._register(cid, "ellipse")
         cls.update()
         return cid
@@ -247,16 +186,10 @@ class Renderer:
     @classmethod
     def draw_triangle(cls, x1: int, y1: int, x2: int, y2: int,
                       x3: int, y3: int) -> Optional[int]:
-        cls.ensure()
-        if not cls._canvas:
-            return None
         s = GraphicsState
-        cid = cls._canvas.create_polygon(
-            x1, y1, x2, y2, x3, y3,
-            outline=s.pen_color,
-            width=s.pen_width,
-            fill=""
-        )
+        cid = cls.backend().create_polygon(
+            (x1, y1, x2, y2, x3, y3), outline=s.pen_color,
+            width=s.pen_width, fill="")
         cls._register(cid, "polygon")
         cls.update()
         return cid
@@ -264,31 +197,17 @@ class Renderer:
     @classmethod
     def fill_triangle(cls, x1: int, y1: int, x2: int, y2: int,
                       x3: int, y3: int) -> Optional[int]:
-        cls.ensure()
-        if not cls._canvas:
-            return None
-        s = GraphicsState
-        cid = cls._canvas.create_polygon(
-            x1, y1, x2, y2, x3, y3,
-            fill=s.brush_color,
-            outline=s.pen_color,
-            width=s.pen_width
-        )
+        cid = cls.backend().create_polygon(
+            (x1, y1, x2, y2, x3, y3), **cls._style())
         cls._register(cid, "polygon")
         cls.update()
         return cid
 
     @classmethod
     def draw_line(cls, x1: int, y1: int, x2: int, y2: int) -> Optional[int]:
-        cls.ensure()
-        if not cls._canvas:
-            return None
         s = GraphicsState
-        cid = cls._canvas.create_line(
-            x1, y1, x2, y2,
-            fill=s.pen_color,
-            width=s.pen_width
-        )
+        cid = cls.backend().create_line(
+            (x1, y1, x2, y2), fill=s.pen_color, width=s.pen_width)
         cls._register(cid, "line")
         cls.update()
         return cid
@@ -296,122 +215,137 @@ class Renderer:
     @classmethod
     def draw_text(cls, x: int, y: int, text: str,
                   anchor: str = "nw", width: Optional[int] = None) -> Optional[int]:
-        cls.ensure()
-        if not cls._canvas:
-            return None
         s = GraphicsState
         weight = "bold" if s.font_bold else "normal"
         slant = "italic" if s.font_italic else "roman"
-        kwargs = dict(
-            text=text, anchor=anchor,
-            font=(s.font_name, s.font_size, weight, slant),
-            fill=s.pen_color
-        )
-        if width is not None:
-            kwargs["width"] = width
-        cid = cls._canvas.create_text(x, y, **kwargs)
+        font = (s.font_name, s.font_size, weight, slant)
+        cid = cls.backend().create_text(
+            x, y, text, anchor=anchor, font=font, fill=s.pen_color, width=width)
         cls._register(cid, "text")
         cls.update()
         return cid
 
     @classmethod
     def draw_image(cls, image_name: str, x: int, y: int) -> Optional[int]:
-        cls.ensure()
-        if not cls._canvas:
-            return None
         from smallbasic.imagelist import ImageList
-        img = ImageList._tk_images.get(image_name)
-        if img:
-            cid = cls._canvas.create_image(x, y, image=img, anchor="nw")
-            cls._register(cid, "image")
-            cls.update()
-            return cid
-        return None
+        img = ImageList._backend_images.get(image_name)
+        if img is None:
+            return None
+        cid = cls.backend().create_image(x, y, img, anchor="nw")
+        cls._register(cid, "image")
+        cls.update()
+        return cid
 
     @classmethod
     def draw_resized_image(cls, image_name: str, x: int, y: int,
                            width: int, height: int) -> Optional[int]:
-        cls.ensure()
-        if not cls._canvas:
-            return None
         from smallbasic.imagelist import ImageList
-        img = ImageList._tk_images.get(image_name)
-        if img:
-            resized = img.zoom(
-                max(1, width // max(img.width(), 1)),
-                max(1, height // max(img.height(), 1))
-            )
-            key = f"{image_name}_{width}x{height}"
-            cls._resized_images[key] = resized
-            cid = cls._canvas.create_image(x, y, image=resized, anchor="nw")
-            cls._register(cid, "image")
-            cls.update()
-            return cid
-        return None
+        img = ImageList._backend_images.get(image_name)
+        if img is None:
+            return None
+        resized = ImageList._resize(img, width, height)
+        if resized is None:
+            return None
+        key = f"{image_name}_{width}x{height}"
+        cls._resized_images[key] = resized
+        cid = cls.backend().create_image(x, y, resized, anchor="nw")
+        cls._register(cid, "image")
+        cls.update()
+        return cid
 
     @classmethod
     def set_pixel(cls, x: int, y: int, color: str) -> None:
-        cls.ensure()
-        if cls._canvas:
-            cls._canvas.create_line(x, y, x + 1, y, fill=color, width=1)
-            cls.update()
+        cls.backend().create_pixel(x, y, color)
+        cls.update()
 
     @classmethod
     def get_pixel(cls, x: int, y: int) -> str:
-        cls.ensure()
-        if cls._canvas:
-            items = cls._canvas.find_closest(x, y)
-            if items:
-                cid = items[0]
-                try:
-                    color = cls._canvas.itemcget(cid, "fill")
-                    if color and color != "":
-                        return color
-                except Exception:
-                    pass
-        return GraphicsState.bg_color
+        return cls.backend().get_pixel(x, y)
 
-    # ── Canvas operations ──────────────────────────────────────────
+    # ── Canvas operations (used by Shapes / Turtle) ────────────────
 
     @classmethod
     def clear(cls):
-        if cls._canvas:
-            cls._canvas.delete("all")
-            cls._objects.clear()
+        if cls._backend:
+            cls._backend.clear()
+        cls._objects.clear()
 
     @classmethod
     def delete(cls, cid: int) -> None:
-        if cls._canvas:
-            cls._canvas.delete(cid)
-            cls._objects.pop(cid, None)
+        if cls._backend:
+            cls._backend.delete(cid)
+        cls._objects.pop(cid, None)
 
     @classmethod
     def coords(cls, cid: int, *args) -> Any:
-        if cls._canvas:
-            return cls._canvas.coords(cid, *args)
-        return None
+        return cls.backend().coords(cid, *args)
 
     @classmethod
     def itemconfig(cls, cid: int, **kwargs):
-        if cls._canvas:
-            cls._canvas.itemconfig(cid, **kwargs)
+        cls.backend().itemconfig(cid, **kwargs)
+
+    @classmethod
+    def itemcget(cls, cid: int, option: str) -> str:
+        return cls.backend().itemcget(cid, option)
 
     @classmethod
     def find_closest(cls, x: int, y: int) -> tuple:
-        if cls._canvas:
-            return cls._canvas.find_closest(x, y)
-        return ()
+        return cls.backend().find_closest(x, y)
 
     @classmethod
     def scale(cls, cid: int, x: float, y: float, sx: float, sy: float):
-        if cls._canvas:
-            cls._canvas.scale(cid, x, y, sx, sy)
+        cls.backend().scale(cid, x, y, sx, sy)
 
     @classmethod
     def get_bbox(cls, cid: int) -> Optional[tuple]:
-        if cls._canvas:
-            return cls._canvas.bbox(cid)
-        return None
+        return cls.backend().bbox(cid)
+
+    # Low-level item creation used by Shapes / Turtle.
+    @classmethod
+    def create_rectangle(cls, x, y, w, h, outline="", width=0, fill=""):
+        return cls.backend().create_rectangle(x, y, w, h, outline=outline,
+                                              width=width, fill=fill)
+
+    @classmethod
+    def create_oval(cls, x0, y0, x1, y1, fill="Red", outline="Black", width=2):
+        return cls.backend().create_oval(x0, y0, x1 - x0, y1 - y0,
+                                         outline=outline, width=width, fill=fill)
+
+    @classmethod
+    def create_polygon(cls, points, outline="", width=0, fill=""):
+        return cls.backend().create_polygon(tuple(points), outline=outline,
+                                            width=width, fill=fill)
+
+    @classmethod
+    def create_line(cls, x1, y1, x2, y2, fill="Black", width=2):
+        return cls.backend().create_line((x1, y1, x2, y2), fill=fill,
+                                         width=width)
+
+    @classmethod
+    def create_text(cls, x, y, text, anchor="nw", font=None, fill="",
+                    width=None):
+        return cls.backend().create_text(x, y, text, anchor=anchor, font=font,
+                                         fill=fill, width=width)
+
+    @classmethod
+    def create_image(cls, x, y, image, anchor="nw"):
+        return cls.backend().create_image(x, y, image, anchor=anchor)
+
+    @classmethod
+    def pump_wait(cls, delay_ms: int) -> None:
+        """Block for ``delay_ms`` while keeping the event loop alive.
+
+        Replaces bare ``time.sleep`` in animation loops: pumps Tcl
+        events during the wait (so a window drag keeps the animation
+        advancing).  Preserves blocking semantics and total duration.
+        """
+        if cls._backend is None:
+            time.sleep(delay_ms / 1000.0)
+            return
+        end = time.time() + delay_ms / 1000.0
+        while time.time() < end:
+            cls._backend.update()
+            time.sleep(0.002)
 
     # ── Object Registry ────────────────────────────────────────────
 
@@ -432,10 +366,9 @@ class Renderer:
 
     @classmethod
     def get_random_color(cls) -> str:
-        r = random.randint(0, 255)
-        g = random.randint(0, 255)
-        b = random.randint(0, 255)
-        return f"#{r:02X}{g:02X}{b:02X}"
+        return f"#{random.randint(0, 255):02X}" \
+               f"{random.randint(0, 255):02X}" \
+               f"{random.randint(0, 255):02X}"
 
     @classmethod
     def get_color_from_rgb(cls, red: int, green: int, blue: int) -> str:

@@ -1,3 +1,11 @@
+# --------------------------------------------------------------------------
+# Python Small Basic
+# Purpose : GraphicsWindow object - public drawing API, properties and events.
+# Version : 1.2.0
+# Author  : Amir Arshad
+# Email   : incredibleamir@gmail.com
+# --------------------------------------------------------------------------
+
 """
 GraphicsWindow — public API for 2D drawing and events.
 
@@ -173,18 +181,19 @@ class _GWMeta(type):
 
 
 def _apply_setting(name):
-    """Apply a property change to the live tkinter window/canvas."""
+    """Apply a property change to the live window/canvas."""
+    b = Renderer._backend
+    if b is None:
+        return  # window not created yet; settings are applied on Show()
     s = GraphicsState
-    root = Renderer._root
-    canvas = Renderer._canvas
-    if name == 'BackgroundColor' and canvas:
-        canvas.config(bg=s.bg_color)
-    elif name == 'Title' and root:
-        root.title(s.title)
-    elif name in ('Width', 'Height', 'Left', 'Top') and root:
-        root.geometry(f"{s.width}x{s.height}+{s.left}+{s.top}")
-    elif name == 'CanResize' and root:
-        root.resizable(s.can_resize, s.can_resize)
+    if name == 'BackgroundColor':
+        b.set_bg(s.bg_color)
+    elif name == 'Title':
+        b.set_title(s.title)
+    elif name in ('Width', 'Height', 'Left', 'Top'):
+        b.set_geometry(s.width, s.height, s.left, s.top)
+    elif name == 'CanResize':
+        b.set_resizable(s.can_resize)
 
 
 # ── Public API ─────────────────────────────────────────────────────
@@ -240,8 +249,7 @@ class GraphicsWindow(metaclass=_GWMeta):
 
     @classmethod
     def ShowMessage(cls, text: str, title: str) -> None:
-        Renderer.ensure()
-        tk.messagebox.showinfo(title, text)
+        Renderer.backend().show_message(title, text)
 
     @classmethod
     def DrawRectangle(cls, x: int, y: int, width: int, height: int) -> None:

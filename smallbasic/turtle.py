@@ -1,3 +1,11 @@
+# --------------------------------------------------------------------------
+# Python Small Basic
+# Purpose : Turtle object - Logo-style turtle graphics on the graphics window.
+# Version : 1.2.0
+# Author  : Amir Arshad
+# Email   : incredibleamir@gmail.com
+# --------------------------------------------------------------------------
+
 """
 Turtle — Logo-style turtle graphics.
 
@@ -5,7 +13,6 @@ Draws on the GraphicsWindow canvas through the internal Renderer.
 """
 
 import math
-import time
 from smallbasic._utils import classproperty, _PropSetMeta
 from smallbasic._state import GraphicsState
 from smallbasic._renderer import Renderer
@@ -26,13 +33,12 @@ class Turtle(metaclass=_PropSetMeta):
     def _ensure_window(cls):
         if Renderer._canvas is None:
             GraphicsWindow.Show()
-        if cls._turtle_dot_id is None and Renderer._canvas:
-            r = 5
-            cls._turtle_dot_id = Renderer._canvas.create_oval(
-                cls._x - r, cls._y - r, cls._x + r, cls._y + r,
+        if cls._turtle_dot_id is None:
+            cls._turtle_dot_id = Renderer.create_oval(
+                cls._x - 5, cls._y - 5, cls._x + 5, cls._y + 5,
                 fill="Red", outline="Black", width=2
             )
-            cls._arrow_line_id = Renderer._canvas.create_line(
+            cls._arrow_line_id = Renderer.create_line(
                 cls._x, cls._y, cls._x, cls._y,
                 fill="Red", width=2
             )
@@ -40,18 +46,19 @@ class Turtle(metaclass=_PropSetMeta):
 
     @classmethod
     def _draw_arrow(cls):
-        if Renderer._canvas is None or cls._turtle_dot_id is None:
+        if cls._turtle_dot_id is None:
             return
         angle_rad = math.radians(cls._angle)
         length = 15
         ex = cls._x + length * math.cos(angle_rad)
         ey = cls._y - length * math.sin(angle_rad)
-        Renderer._canvas.coords(cls._turtle_dot_id,
-                                 cls._x - 5, cls._y - 5,
-                                 cls._x + 5, cls._y + 5)
+        if cls._turtle_dot_id is not None:
+            Renderer.coords(cls._turtle_dot_id,
+                             cls._x - 5, cls._y - 5,
+                             cls._x + 5, cls._y + 5)
         if cls._arrow_line_id:
-            Renderer._canvas.coords(cls._arrow_line_id,
-                                     cls._x, cls._y, ex, ey)
+            Renderer.coords(cls._arrow_line_id,
+                             cls._x, cls._y, ex, ey)
 
     @classproperty
     def Speed(cls) -> int:
@@ -98,11 +105,11 @@ class Turtle(metaclass=_PropSetMeta):
     @classmethod
     def Hide(cls) -> None:
         cls._visible = False
-        if cls._turtle_dot_id and Renderer._canvas:
-            Renderer._canvas.delete(cls._turtle_dot_id)
+        if cls._turtle_dot_id is not None:
+            Renderer.delete(cls._turtle_dot_id)
             cls._turtle_dot_id = None
-        if cls._arrow_line_id and Renderer._canvas:
-            Renderer._canvas.delete(cls._arrow_line_id)
+        if cls._arrow_line_id is not None:
+            Renderer.delete(cls._arrow_line_id)
             cls._arrow_line_id = None
         Renderer.flush()
 
@@ -122,19 +129,17 @@ class Turtle(metaclass=_PropSetMeta):
         cls._x += distance * math.cos(angle_rad)
         cls._y -= distance * math.sin(angle_rad)
 
-        canvas = Renderer._canvas
-        if canvas:
-            if cls._pen_down:
-                canvas.create_line(
-                    start_x, start_y, cls._x, cls._y,
-                    fill=GraphicsState.pen_color,
-                    width=GraphicsState.pen_width
-                )
-            cls._draw_arrow()
-            Renderer.flush()
-            if cls._speed < 10:
-                delay_ms = max(5, (10 - cls._speed) * 10)
-                time.sleep(delay_ms / 1000.0)
+        if cls._pen_down:
+            Renderer.create_line(
+                start_x, start_y, cls._x, cls._y,
+                fill=GraphicsState.pen_color,
+                width=GraphicsState.pen_width
+            )
+        cls._draw_arrow()
+        Renderer.flush()
+        if cls._speed < 10:
+            delay_ms = max(5, (10 - cls._speed) * 10)
+            Renderer.pump_wait(delay_ms)
 
     @classmethod
     def MoveTo(cls, x: float, y: float) -> None:

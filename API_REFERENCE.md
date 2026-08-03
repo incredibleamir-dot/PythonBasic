@@ -1,6 +1,6 @@
 # Python Small Basic — API Reference Guide
 
-> **Version 1.2.0** | Windows-only (uses `winsound`, `ctypes`, `tkinter`)
+> **Version 1.5.0** | Windows-only (uses `winsound`, `ctypes`, `tkinter`)
 
 ---
 
@@ -25,7 +25,7 @@
 17. [GraphicsWindow](#graphicswindow) — Drawing, text, images & events
 18. [Shapes](#shapes) — Add, move, rotate & animate shapes
 19. [Turtle](#turtle) — Logo-style turtle graphics
-20. [Controls](#controls) — Buttons & text boxes on the graphics window
+20. [Controls](#controls) — Buttons, text boxes & extended widgets
 
 ---
 
@@ -587,16 +587,16 @@ All are class-level on `GraphicsWindow`.
 
 ### Events
 
-Set these class-level attributes to callable functions. The callback receives a `tkinter.Event` object with `.x`, `.y`, `.keysym`, `.char`, etc.
+Set these class-level attributes to callable functions. **Handlers take no arguments** — the internal `tkinter.Event` is *not* passed. Read the state through the public properties (`LastKey`, `LastText`, `MouseX`, `MouseY`).
 
 | Event | Callback Signature | Description |
 |-------|-------------------|-------------|
-| `KeyDown` | `(event) -> None` | Key pressed |
-| `KeyUp` | `(event) -> None` | Key released |
-| `MouseDown` | `(event) -> None` | Left button pressed |
-| `MouseUp` | `(event) -> None` | Left button released |
-| `MouseMove` | `(event) -> None` | Mouse moved |
-| `TextInput` | `(event) -> None` | Character input (`<Key>` event) |
+| `KeyDown` | `() -> None` | Key pressed |
+| `KeyUp` | `() -> None` | Key released |
+| `MouseDown` | `() -> None` | Mouse button pressed |
+| `MouseUp` | `() -> None` | Mouse button released |
+| `MouseMove` | `() -> None` | Mouse moved |
+| `TextInput` | `() -> None` | Character input |
 
 > **Important:** For interactive GraphicsWindow programs (controls, events, mouse/keyboard), always use `GraphicsWindow.Wait()` at the end instead of `Program.Delay()`. `Program.Delay()` blocks the main thread and prevents tkinter from processing events, so button clicks, key presses, and mouse events will not fire during the delay.
 >
@@ -615,10 +615,16 @@ GraphicsWindow.Width = 800
 GraphicsWindow.Height = 600
 GraphicsWindow.Show()
 
-def on_key(event):
-    print(f"Key: {event.keysym}")
+def on_key():
+    key = GraphicsWindow.LastKey          # e.g. "a", "Up", "Escape"
+    print(f"Key: {key}")
 
 GraphicsWindow.KeyDown = on_key
+
+def on_click():
+    print(f"Clicked at ({GraphicsWindow.MouseX}, {GraphicsWindow.MouseY})")
+
+GraphicsWindow.MouseDown = on_click
 
 GraphicsWindow.DrawRectangle(50, 50, 100, 80)
 GraphicsWindow.FillEllipse(200, 50, 80, 80)
@@ -723,9 +729,9 @@ Turtle.Move(30)
 
 ## Controls
 
-Buttons and text boxes placed on the Graphics Window.
+Buttons, text boxes, and extended widgets placed on the Graphics Window.
 
-### Methods
+### Methods — Standard controls
 
 | Method | Signature | Returns | Description |
 |--------|-----------|---------|-------------|
@@ -743,32 +749,85 @@ Buttons and text boxes placed on the Graphics Window.
 | `HideControl(name)` | `(str) -> None` | — | Hides control (`place_forget`) |
 | `ShowControl(name)` | `(str) -> None` | — | Shows control (`place`) |
 
+### Extended controls
+
+| Method | Signature | Returns | Description |
+|--------|-----------|---------|-------------|
+| `AddDropDown(items, left, top)` | `(list, int, int) -> str` | DropDown name | A readonly combo box. `items` accepts a Python list or a Small Basic array |
+| `GetSelectedDropDownItem(name)` | `(str) -> str` | Selected text | Current dropdown text (empty if none) |
+| `SetSelectedDropDownItem(name, index)` | `(str, int) -> None` | — | Select an item by 0-based index |
+| `GetDropDownItemCount(name)` | `(str) -> int` | Item count | Number of items |
+| `GetDropDownItems(name)` | `(str) -> list` | Items | The list of items |
+| `AddSlider(minimum, maximum, left, top)` | `(int, int, int, int) -> str` | Slider name | Adds a horizontal slider |
+| `GetSliderValue(name)` | `(str) -> int` | Current value | Reads the slider value |
+| `SetSliderValue(name, value)` | `(str, int) -> None` | — | Sets the slider value (also fires `SliderChanged`) |
+| `AddProgressBar(left, top)` | `(int, int) -> str` | Bar name | Adds a determinate progress bar (0–100) |
+| `GetProgressBarValue(name)` | `(str) -> int` | Current value | Reads progress value |
+| `SetProgressBarValue(name, value)` | `(str, int) -> None` | — | Sets progress (clamped to 0–100) |
+| `AddTable(data, left, top)` | `(2D list, int, int) -> str` | Table name | Adds a table. First row = column headers |
+| `SetTableData(name, data)` | `(str, 2D list) -> None` | — | Replaces all rows |
+| `GetSelectedTableRow(name)` | `(str) -> int` | 1-based row or `0` | Row currently selected |
+
 ### Properties
 
 | Property | Type | Get | Set | Description |
 |----------|------|-----|-----|-------------|
 | `LastClickedButton` | `str` | ✓ | — | Name of last clicked button |
 | `LastTypedTextBox` | `str` | ✓ | — | Name of last typed text box |
+| `LastChangedSlider` | `str` | ✓ | — | Name of last changed slider |
+| `LastSelectedDropDown` | `str` | ✓ | — | Name of last selected dropdown |
+| `LastSelectedTable` | `str` | ✓ | — | Name of the table that just had a row selected |
 
 ### Events
 
+Event handlers take **no arguments**. Use the corresponding `Last*` property to identify which widget fired, then call a getter to read its value.
+
 | Event | Setter | Description |
 |-------|--------|-------------|
-| `ButtonClicked` | `Controls.ButtonClicked = callback` | Called when any button is clicked. Use `LastClickedButton` to identify which |
-| `TextTyped` | `Controls.TextTyped = callback` | Called on key release in any text box. Use `LastTypedTextBox` to identify which |
+| `ButtonClicked` | `Controls.ButtonClicked = callback` | Called when any button is clicked. Use `LastClickedButton` |
+| `TextTyped` | `Controls.TextTyped = callback` | Called on key release in any text box. Use `LastTypedTextBox` |
+| `SliderChanged` | `Controls.SliderChanged = callback` | Called when any slider changes. Use `LastChangedSlider` + `GetSliderValue` |
+| `DropDownSelected` | `Controls.DropDownSelected = callback` | Called when a dropdown item is picked. Use `LastSelectedDropDown` + `GetSelectedDropDownItem` |
+| `TableRowSelected` | `Controls.TableRowSelected = callback` | Called when a table row is selected. Use `LastSelectedTable` + `GetSelectedTableRow` |
 
 ```python
+GraphicsWindow.Show()
+
 def on_click():
     btn = Controls.LastClickedButton
     text = Controls.GetTextBoxText(tb)
     Controls.SetTextBoxText(output, f"{btn}: {text}")
 
-btn = Controls.AddButton("Submit", 10, 10)
-tb = Controls.AddTextBox(10, 50)
-output = Controls.AddMultiLineTextBox(10, 100)
+def on_slider():
+    value = Controls.GetSliderValue(Controls.LastChangedSlider)
+    Controls.SetTextBoxText(output, f"Slider: {value}")
+
+btn   = Controls.AddButton("Submit", 10, 10)
+sl    = Controls.AddSlider(0, 100, 10, 60)
+tb    = Controls.AddTextBox(10, 100)
+output = Controls.AddMultiLineTextBox(10, 140)
+
 Controls.ButtonClicked = on_click
+Controls.SliderChanged = on_slider
 
 GraphicsWindow.Wait()
+```
+
+### Table example
+
+```python
+table = Controls.AddTable([
+    ["Player", "Score"],
+    ["Alice", 3400],
+    ["Bob", 2200],
+], 10, 200)
+
+def on_row():
+    Controls.SetTextBoxText(output,
+        Controls.LastSelectedTable + " row " +
+        str(Controls.GetSelectedTableRow(table)))
+
+Controls.TableRowSelected = on_row
 ```
 
 ---

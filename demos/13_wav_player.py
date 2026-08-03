@@ -1,11 +1,11 @@
 """
 Demo 13: WAV Player - GUI audio player using Sound.WavPlay/Pause/Stop API
+Run this demo from the demos/ folder (so the sample WAV file is found).
 """
 
-import os
 from smallbasic import GraphicsWindow, Controls, Shapes, Timer, Program, Sound
 
-WAV_FILE = os.path.join(os.path.dirname(__file__), "sample-speech-1m.wav")
+WAV_FILE = "sample-speech-1m.wav"
 
 # ---------------------------------------------------------------------------
 # Load WAV file into the Sound engine
@@ -37,7 +37,7 @@ Shapes.Move(title, 20, 20)
 GraphicsWindow.FontSize = 11
 GraphicsWindow.FontBold = False
 
-fname = Shapes.AddText("File: " + os.path.basename(WAV_FILE))
+fname = Shapes.AddText("File: " + WAV_FILE)
 Shapes.Move(fname, 20, 48)
 
 dur_label = Shapes.AddText("Duration: " + _fmt(total_dur))
