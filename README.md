@@ -95,7 +95,6 @@ TextWindow.WriteLine("Hello World")
 
 - **Flickr** – The original Small Basic `Flickr` object is omitted because the Flickr API requires an API key and OAuth. No replacement is provided.
 - **ImageList.LoadImage** – Works with PIL (Pillow) if installed, or with tkinter's `.gif`/`.ppm` support only. Full image format support requires `pip install Pillow`.
-- **GraphicsWindow.MakeKeyFromTitle** / **GraphicsWindow.MakeKeyFromVisible** – Not implemented.
 - **Controls.KeyTyped** – Not implemented due to focus management complexity with real widgets.
 - **Multi-touch** – Not supported; only single mouse cursor.
 - **Linux/macOS** – This library is Windows-only (uses `winsound`, `ctypes` Windows APIs). Contributions for cross-platform support welcome.
@@ -223,6 +222,7 @@ The `demos/` folder contains runnable examples covering all features:
 | 19 | `demos/19_brick_breaker.py` | Brick-breaker game (arrow keys) |
 | 20 | `demos/20_extended_controls.py` | DropDown, Slider, ProgressBar, Table + events |
 | 21 | `demos/21_live_animation.py` | Animated shapes |
+| 22 | `demos/22_shape_transforms.py` | Interactive shape create/move/rotate/zoom playground |
 
 Run any demo with:
 
