@@ -499,11 +499,10 @@ class TkBackend(Backend):
             return 0
 
     def slider_set(self, handle, value):
-        var = getattr(handle, "_sb_var", None)
-        if var is not None:
-            var.set(value)
-        else:
-            handle.set(value)
+        # use the widget-level set (like a user drag) so the SliderChanged
+        # callback observes the NEW value; var.set() fires the trace before
+        # the variable reflects the new value.
+        handle.set(value)
 
     def add_progressbar(self, left, top):
         self.ensure()
