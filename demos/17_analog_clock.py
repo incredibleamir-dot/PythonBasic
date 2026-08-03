@@ -2,6 +2,9 @@
 Demo 17: Analog Clock — analog + digital clock
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import GraphicsWindow, Clock, Program, Shapes, Math
 
 CX, CY, R = 300, 300, 200

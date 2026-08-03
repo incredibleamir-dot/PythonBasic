@@ -18,7 +18,7 @@
 10. [Network](#network) — HTTP requests & file downloads
 11. [Dictionary](#dictionary) — Definitions & translations
 12. [Mouse](#mouse) — Cursor position & button state
-13. [Sound](#sound) — System sounds, audio files & WAV playback
+13. [Sound](#sound) — System sounds, beep tunes & audio files (WAV/MP3)
 14. [Timer](#timer) — Repeating interval callbacks
 15. [ImageList](#imagelist) — Load & inspect images
 16. [Keywords](#keywords) — Small Basic keyword reference
@@ -388,7 +388,7 @@ if Mouse.IsLeftButtonDown:
 
 ## Sound
 
-System sounds, audio file playback, and WAV playback with position tracking.
+System sounds, beep tunes, and audio file playback (WAV & MP3) with play/pause/seek/progress.
 
 ### System Sounds
 
@@ -404,47 +404,47 @@ System sounds, audio file playback, and WAV playback with position tracking.
 | `PlayBellRingAndWait()` | Sync system hand |
 | `PlayMusic(notes)` | Beep-based music (async thread) |
 
-### Audio File Playback
+### Audio File Playback (WAV & MP3)
+
+File playback runs in-process through the Windows Media Control Interface (MCI),
+so `Sound.Play` works for both WAV and MP3 — with play/pause/seek/progress — using only
+the standard library (`ctypes` + `winmm`). No external decoders are required.
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `Play(path)` | `(str) -> None` | Play WAV (async) or open MP3/WMA via `os.startfile` |
-| `PlayAndWait(path)` | `(str) -> None` | Play WAV (sync) or estimate duration for other formats |
-| `Pause()` | `() -> None` | Pause playback (uses `SND_PURGE`) |
-| `Resume()` | `() -> None` | Resume from pause |
-| `Stop()` | `() -> None` | Stop and clear current file |
-
-### WAV Playback (v1.2.0)
-
-Properties and methods for playing WAV files with position-tracked pause/resume.
+| `Play(path)` | `(str = None) -> None` | Play a WAV/MP3 file (async). With no argument, plays the currently open file (or resumes after a pause) |
+| `PlayAndWait(path)` | `(str = None) -> None` | Play a file and block until it finishes |
+| `Open(path)` | `(str) -> bool` | Open a WAV/MP3 file (closes any previous file). Returns `True` on success |
+| `Pause()` | `() -> None` | Pause the current file. `Resume()` or `Play()` continues |
+| `Resume()` | `() -> None` | Resume a paused file |
+| `Stop()` | `() -> None` | Stop and rewind to the start (file stays open) |
+| `Seek(seconds)` | `(float) -> None` | Jump to a position within the open file |
 
 | Member | Type | Description |
 |--------|------|-------------|
-| `WavFile` | property (get/set) | Path to WAV file. Setting it loads header metadata (duration, sample rate) |
-| `WavDuration` | property (read-only) | Total duration of loaded WAV in seconds (`float`) |
-| `PlayPosition` | property (read-only) | Current playback position in seconds (`float`). Updates live during play |
-| `WavPlaying` | property (read-only) | `True` while WAV audio is currently playing (`bool`) |
-| `WavPlay()` | method | Play from beginning or resume from paused position |
-| `WavPause()` | method | Pause and save current position |
-| `WavStop()` | method | Stop and reset position to 0 |
-| `WavPlayAndWait()` | method | Play synchronously (blocking, resets position to 0) |
+| `CurrentFile` | property (read-only) | Path of the currently open file |
+| `Duration` | property (read-only) | Total length of the open file in seconds (`float`) |
+| `PlayPosition` | property (read-only) | Current playback position in seconds (`float`) |
+| `IsPlaying` | property (read-only) | `True` while audio is playing (`bool`) |
 
-**Implementation notes:**
-- Uses a temp sub-WAV file for position-tracked resume (avoids `SND_MEMORY` GC issues)
-- WAV must be mono or stereo 16-bit PCM (standard)
-- `WavPlayAndWait()` uses synchronous `PlaySound` for accurate timing
+> **Note:** `PlayPosition` / `IsPlaying` are thread-safe — they are wall-clock based,
+> so they update correctly from `Timer` callbacks (which run on a background thread).
 
 ```python
-# WAV player example
-Sound.WavFile = "sample-speech-1m.wav"
-print(f"Duration: {Sound.WavDuration:.2f}s")    # 60.00s
-Sound.WavPlay()                                   # start playback
-if Sound.WavPlaying:                              # is it playing?
-    pos = Sound.PlayPosition                      # current position
-Sound.WavPause()                                  # pause
-Sound.WavPlay()                                   # resume from pause
-Sound.WavStop()                                   # stop & reset
-Sound.WavPlayAndWait()                            # play & block
+# one-liner playback (any format)
+Sound.Play("C:/music/song.mp3")
+
+# open and control playback with position tracking
+Sound.Open("sample-speech-1m.wav")
+print(f"Duration: {Sound.Duration:.2f}s")    # 60.00s
+Sound.Play()                                  # start / resume
+if Sound.IsPlaying:                           # is it playing?
+    pos = Sound.PlayPosition                  # current position
+Sound.Pause()                                 # pause
+Sound.Resume()                                # resume
+Sound.Seek(30.0)                              # jump to 30s
+Sound.Stop()                                  # stop & rewind
+Sound.PlayAndWait("song.wav")                 # play to the end (blocking)
 ```
 
 ---
@@ -767,6 +767,9 @@ Buttons, text boxes, and extended widgets placed on the Graphics Window.
 | `AddTable(data, left, top)` | `(2D list, int, int) -> str` | Table name | Adds a table. First row = column headers |
 | `SetTableData(name, data)` | `(str, 2D list) -> None` | — | Replaces all rows |
 | `GetSelectedTableRow(name)` | `(str) -> int` | 1-based row or `0` | Row currently selected |
+| `AddFilePicker(caption, left, top)` | `(str, int, int) -> str` | Picker name | Button that opens a native file-open dialog |
+| `AddFolderPicker(caption, left, top)` | `(str, int, int) -> str` | Picker name | Button that opens a native folder dialog |
+| `GetPickerPath(name)` | `(str) -> str` | Path or `''` | Last path chosen by the given file/folder picker |
 
 ### Properties
 
@@ -777,6 +780,8 @@ Buttons, text boxes, and extended widgets placed on the Graphics Window.
 | `LastChangedSlider` | `str` | ✓ | — | Name of last changed slider |
 | `LastSelectedDropDown` | `str` | ✓ | — | Name of last selected dropdown |
 | `LastSelectedTable` | `str` | ✓ | — | Name of the table that just had a row selected |
+| `LastPickedFile` | `str` | ✓ | — | Path chosen by the most recent file picker |
+| `LastPickedFolder` | `str` | ✓ | — | Path chosen by the most recent folder picker |
 
 ### Events
 
@@ -789,6 +794,8 @@ Event handlers take **no arguments**. Use the corresponding `Last*` property to 
 | `SliderChanged` | `Controls.SliderChanged = callback` | Called when any slider changes. Use `LastChangedSlider` + `GetSliderValue` |
 | `DropDownSelected` | `Controls.DropDownSelected = callback` | Called when a dropdown item is picked. Use `LastSelectedDropDown` + `GetSelectedDropDownItem` |
 | `TableRowSelected` | `Controls.TableRowSelected = callback` | Called when a table row is selected. Use `LastSelectedTable` + `GetSelectedTableRow` |
+| `FilePicked` | `Controls.FilePicked = callback` | Called after a file picker chooses a file. Use `LastPickedFile` |
+| `FolderPicked` | `Controls.FolderPicked = callback` | Called after a folder picker chooses a folder. Use `LastPickedFolder` |
 
 ```python
 GraphicsWindow.Show()

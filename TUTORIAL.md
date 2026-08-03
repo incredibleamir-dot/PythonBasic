@@ -697,6 +697,19 @@ Use `Controls.LastChangedSlider` / `Controls.LastSelectedDropDown` /
 `Controls.LastSelectedTable` when you have more than one of each widget and need
 to know which one fired.
 
+### File and folder pickers
+
+`Controls.AddFilePicker` and `Controls.AddFolderPicker` add buttons that open the
+native Windows dialogs. The chosen path is stored in `Controls.LastPickedFile` /
+`Controls.LastPickedFolder` and a `FilePicked` / `FolderPicked` event fires:
+
+```python
+fp = Controls.AddFilePicker("Open...", 20, 200)
+Controls.FilePicked = lambda: TextWindow.WriteLine(
+    "You picked: " + Controls.LastPickedFile)
+path = Controls.GetPickerPath(fp)      # last path chosen by this picker
+```
+
 ---
 
 ## 13. Timers — the `Timer` object
@@ -833,29 +846,25 @@ Sound.PlayBellRing()       Sound.PlayBellRingAndWait()
 Sound.PlayMusic("O4 L4 C D E F G A B C5")
 ```
 
-### Play a file with pause / resume
+### Play an audio file (WAV or MP3) with full control
+
+`Sound.Play` handles WAV **and** MP3 through the Windows Media Control Interface
+(MCI) — no external decoders needed.
 
 ```python
-Sound.Play("C:/music/song.wav")      # async (non-blocking)
-Sound.Pause()
-Program.Delay(1000)
-Sound.Resume()
-Sound.Stop()
+Sound.Play("C:/music/song.mp3")        # one-liner (async, non-blocking)
 
-Sound.PlayAndWait("song.wav")        # blocking — plays to the end
-```
-
-### WAV playback with position tracking (v1.2.0)
-
-```python
-Sound.WavFile = "C:/music/song.wav"     # set the file (loads its metadata)
-Sound.WavDuration                       # total seconds (read-only)
-Sound.WavPlay()                         # play / resume
-Sound.WavPause()                        # pause, remembering position
-Sound.WavStop()                         # stop, reset to 0
-Sound.WavPlayAndWait()                  # play synchronously
-Sound.PlayPosition                      # current position in seconds
-Sound.WavPlaying                        # True while playing (read-only)
+Sound.Open("C:/music/song.wav")        # load a file for full control
+Sound.Duration                         # total seconds (read-only)
+Sound.Play()                           # play / resume
+Sound.Pause()                          # pause, remembering position
+Sound.Resume()                         # resume from pause
+Sound.Seek(30.0)                       # jump to 30 seconds
+Sound.Stop()                           # stop, rewind to start
+Sound.PlayPosition                     # current position in seconds
+Sound.IsPlaying                        # True while playing (read-only)
+Sound.CurrentFile                      # path of the open file
+Sound.PlayAndWait("song.wav")          # blocking — plays to the end
 ```
 
 ---

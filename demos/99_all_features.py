@@ -3,6 +3,9 @@ Python Small Basic — Complete Feature Demo
 Showcases ALL classes, methods, properties, and events.
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import (
     TextWindow, GraphicsWindow, Turtle, Controls, Shapes, Mouse,
     Sound, Clock, Timer, Network, File, Desktop, Math, Dictionary,

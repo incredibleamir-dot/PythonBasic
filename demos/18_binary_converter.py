@@ -3,6 +3,9 @@ Binary Converter: Text ↔ Binary converter
 Transpiled from Microsoft Small Basic.
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import *
 
 GraphicsWindow.Width = 400

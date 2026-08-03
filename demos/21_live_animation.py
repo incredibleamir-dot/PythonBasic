@@ -9,6 +9,9 @@ nothing freezes or crashes.
     python demos/21_live_animation.py
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import GraphicsWindow, Shapes, Turtle, Controls
 
 GraphicsWindow.Title = "Live Animation - click the canvas while it plays"

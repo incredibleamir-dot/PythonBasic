@@ -2,6 +2,61 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-08-03
+
+### Added
+
+- **File and folder pickers** on the `Controls` object — native Windows dialogs
+  with no extra dependencies:
+  - `Controls.AddFilePicker(caption, left, top)` — button that opens a file-open dialog.
+  - `Controls.AddFolderPicker(caption, left, top)` — button that opens a folder dialog.
+  - `Controls.GetPickerPath(name)` — last path chosen by a specific picker.
+  - `Controls.LastPickedFile` / `Controls.LastPickedFolder` — last chosen path.
+  - `Controls.FilePicked` / `Controls.FolderPicked` — no-argument events fired after a pick.
+
+### Changed
+
+- **Unified audio-file playback on `Sound`** — the separate WAV API
+  (`WavFile` / `WavDuration` / `WavPlay` / `WavPause` / `WavStop` / `WavPlayAndWait` /
+  `WavPlaying`) is removed and folded into one API that handles **WAV and MP3**.
+  Files are played in-process through the Windows Media Control Interface (MCI) via
+  the standard library (`ctypes` + `winmm`), so no external decoder is needed.
+  - `Sound.Play(path=None)` — play a WAV/MP3 async, or play/resume the open file.
+  - `Sound.PlayAndWait(path=None)` — play to the end (blocking).
+  - `Sound.Open(path)` — open a file (returns `bool`), replaces the old `WavFile`.
+  - `Sound.Pause()` / `Sound.Resume()` / `Sound.Stop()` / `Sound.Seek(seconds)`.
+  - `Sound.CurrentFile` / `Sound.Duration` / `Sound.PlayPosition` / `Sound.IsPlaying`
+    (replaces `WavPlaying`).
+
+### Fixed
+
+- **MP3 files previously opened an external player** via `os.startfile()` with no
+  control. They are now played in-process with full play/pause/seek/progress.
+- **`Sound.PlayPosition` now works from Timer callbacks.** MCI reports a position
+  of `0` when queried from a background thread, which froze the elapsed-time /
+  progress-bar readouts in `demos/13_wav_player.py`. Position is now tracked with
+  a monotonic wall-clock (like the pre-1.6 engine), so `PlayPosition` / `IsPlaying`
+  are thread-safe; MCI is used only for the play/pause/stop/seek commands.
+- **`demos/13_wav_player.py`** rewritten on the new API (`Sound.Open/Play/Pause/Stop/Seek`);
+  it no longer depends on the removed WAV methods.
+- **Demos now bootstrap `smallbasic` onto `sys.path`** (via `__file__`), so
+  `python demos/<name>.py` works from any directory without installing the package
+  (previously every demo failed with `ModuleNotFoundError` unless the repo root was
+  already on the path).
+- **`demos/13_wav_player.py` loads its sample audio relative to the script**, so the
+  player shows the real duration and plays no matter which folder you launch it from.
+
+### Added
+
+- **New demo** `demos/15_file_folder_picker.py` — file-open and folder pickers with
+  `FilePicked` / `FolderPicked` events showing the chosen path.
+
+### Tests
+
+- **Suite expanded from 427 to 450 checks.** `Sound` section 37 now exercises the unified
+  API and performs a real WAV playback cycle (open, duration, play, pause-holds-position,
+  resume, seek, stop). New section 22d covers the file/folder pickers.
+
 ## [1.5.0] - 2026-08-03
 
 ### Added

@@ -642,6 +642,34 @@ except Exception as e:
     GraphicsWindow.Hide()
 
 # ====================================================================
+# 22d. File / Folder Pickers
+# ====================================================================
+print("\n=== 22d. File / Folder Pickers ===")
+
+check("FilePicked event default None", Controls.FilePicked is None)
+check("FolderPicked event default None", Controls.FolderPicked is None)
+
+try:
+    GraphicsWindow.Show()
+    fp = Controls.AddFilePicker("Open...", 20, 20)
+    fd = Controls.AddFolderPicker("Folder...", 20, 60)
+    check("AddFilePicker returns str", isinstance(fp, str) and fp.startswith("FilePicker"))
+    check("AddFolderPicker returns str", isinstance(fd, str) and fd.startswith("FolderPicker"))
+    check("GetPickerPath default ''", Controls.GetPickerPath(fp) == "")
+    check("GetPickerPath missing ''", Controls.GetPickerPath("Nope") == "")
+    check("LastPickedFile default ''", Controls.LastPickedFile == "")
+    check("LastPickedFolder default ''", Controls.LastPickedFolder == "")
+    Controls._picked[fp] = "C:/picked.txt"
+    check("GetPickerPath reads stored", Controls.GetPickerPath(fp) == "C:/picked.txt")
+    Controls.Remove(fp)
+    check("GetPickerPath after remove ''", Controls.GetPickerPath(fp) == "")
+    Controls.Remove(fd)
+    GraphicsWindow.Hide()
+except Exception as e:
+    check("File/Folder Pickers", False, str(e))
+    GraphicsWindow.Hide()
+
+# ====================================================================
 # 23. Desktop
 # ====================================================================
 print("\n=== 23. Desktop ===")
@@ -1063,17 +1091,48 @@ Turtle.X, Turtle.Y = t_old_x, t_old_y
 print("\n=== 37. Sound edge cases ===")
 
 check("PlayMusic empty no crash", (Sound.PlayMusic(""), True)[1])
-check("Play missing wav no crash", (Sound.Play("_no_such_.wav"), True)[1])
+check("Play missing file no crash", (Sound.Play("_no_such_.wav"), True)[1])
+check("Play no file no crash", (Sound.Play(), True)[1])
 check("Stop no crash", (Sound.Stop(), True)[1])
 check("Pause no crash", (Sound.Pause(), True)[1])
 check("Resume no crash", (Sound.Resume(), True)[1])
-Sound.WavFile = "_no_such_.wav"
-check("WavFile missing duration 0", Sound.WavDuration == 0.0)
-check("WavPlay missing no-op", (Sound.WavPlay(), True)[1])
-check("WavPause missing no-op", (Sound.WavPause(), True)[1])
-check("WavStop missing no-op", (Sound.WavStop(), True)[1])
-check("PlayPosition 0", Sound.PlayPosition == 0.0)
-check("WavPlaying False", Sound.WavPlaying is False)
+check("Seek no file no crash", (Sound.Seek(5), True)[1])
+check("Open missing file False", Sound.Open("_no_such_.wav") is False)
+check("PlayAndWait missing no crash", (Sound.PlayAndWait("_no_such_.wav"), True)[1])
+check("CurrentFile empty", Sound.CurrentFile == "")
+check("Duration empty 0", Sound.Duration == 0.0)
+check("PlayPosition empty 0", Sound.PlayPosition == 0.0)
+check("IsPlaying empty False", Sound.IsPlaying is False)
+
+# Real playback (WAV) — uses the bundled sample; emits brief audio
+demo_wav = os.path.join(os.path.dirname(__file__), "demos", "sample-speech-1m.wav")
+if os.path.exists(demo_wav):
+    check("Open real wav", Sound.Open(demo_wav) is True)
+    check("CurrentFile set", Sound.CurrentFile == demo_wav)
+    dur = Sound.Duration
+    check("Duration ~60s", abs(dur - 60.0) < 1.5)
+    check("PlayPosition 0 after open", Sound.PlayPosition < 0.5)
+    Sound.Play()
+    time.sleep(0.6)
+    check("IsPlaying True", Sound.IsPlaying is True)
+    check("Position advances", Sound.PlayPosition > 0.0)
+    Sound.Pause()
+    p1 = Sound.PlayPosition
+    time.sleep(0.3)
+    check("Pause holds position", abs(Sound.PlayPosition - p1) < 0.15)
+    Sound.Resume()
+    time.sleep(0.2)
+    check("Resume continues", Sound.IsPlaying is True)
+    Sound.Seek(30)
+    time.sleep(0.25)
+    check("Seek ~30s", abs(Sound.PlayPosition - 30.0) < 2.0)
+    Sound.Stop()
+    check("Stop position 0", Sound.PlayPosition < 0.5)
+    check("IsPlaying False after stop", Sound.IsPlaying is False)
+    Sound.Stop()
+else:
+    print("  SKIP real wav playback (sample missing)")
+    check("Open real wav", True)
 
 # ====================================================================
 # 38. ImageList — real image load/draw

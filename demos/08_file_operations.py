@@ -2,6 +2,9 @@
 Demo 8: File - read/write/append text files
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import File, TextWindow, Program
 
 TextWindow.Title = "File Operations Demo"

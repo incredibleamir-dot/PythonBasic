@@ -2,6 +2,9 @@
 Demo 3: Math - trig, random, fun with *args
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import TextWindow, Math
 
 TextWindow.Title = "Math Demo"

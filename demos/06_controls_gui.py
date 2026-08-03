@@ -2,6 +2,9 @@
 Demo 6: Controls - Button, TextBox, MultiLine Text, events
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import Controls, GraphicsWindow, TextWindow, Program
 
 GraphicsWindow.Title = "Controls Demo"

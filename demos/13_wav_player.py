@@ -1,17 +1,24 @@
 """
-Demo 13: WAV Player - GUI audio player using Sound.WavPlay/Pause/Stop API
-Run this demo from the demos/ folder (so the sample WAV file is found).
+Demo 13: Media Player - GUI audio player using Sound.Open/Play/Pause/Stop/Seek
+WAV and MP3 files both work with this API. The sample audio file lives in the
+demos/ folder and is located automatically, no matter which directory you run from.
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import GraphicsWindow, Controls, Shapes, Timer, Program, Sound
 
-WAV_FILE = "sample-speech-1m.wav"
+AUDIO_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                          "sample-speech-1m.wav")
+if not os.path.exists(AUDIO_FILE):
+    AUDIO_FILE = "sample-speech-1m.wav"
 
 # ---------------------------------------------------------------------------
-# Load WAV file into the Sound engine
+# Load the audio file into the Sound engine
 # ---------------------------------------------------------------------------
-Sound.WavFile = WAV_FILE
-total_dur = Sound.WavDuration
+Sound.Open(AUDIO_FILE)
+total_dur = Sound.Duration
 
 
 def _fmt(sec):
@@ -22,7 +29,7 @@ def _fmt(sec):
 # ---------------------------------------------------------------------------
 # UI
 # ---------------------------------------------------------------------------
-GraphicsWindow.Title = "WAV Player Demo"
+GraphicsWindow.Title = "Media Player Demo"
 GraphicsWindow.Width = 520
 GraphicsWindow.Height = 270
 GraphicsWindow.BackgroundColor = "White"
@@ -31,13 +38,13 @@ GraphicsWindow.Show()
 GraphicsWindow.FontSize = 18
 GraphicsWindow.FontBold = True
 GraphicsWindow.PenColor = "Black"
-title = Shapes.AddText("WAV Player")
+title = Shapes.AddText("Media Player")
 Shapes.Move(title, 20, 20)
 
 GraphicsWindow.FontSize = 11
 GraphicsWindow.FontBold = False
 
-fname = Shapes.AddText("File: " + WAV_FILE)
+fname = Shapes.AddText("File: " + AUDIO_FILE)
 Shapes.Move(fname, 20, 48)
 
 dur_label = Shapes.AddText("Duration: " + _fmt(total_dur))
@@ -63,7 +70,7 @@ stop_btn = Controls.AddButton("Stop", 200, 165)
 
 GraphicsWindow.FontSize = 10
 GraphicsWindow.PenColor = "DimGray"
-GraphicsWindow.DrawText(20, 210, "Play / Pause / Stop — WavPlay / WavPause / WavStop API")
+GraphicsWindow.DrawText(20, 210, "Play / Pause / Stop / Seek - Sound.Open/Play/Pause/Stop API")
 GraphicsWindow.DrawText(20, 228, "Close the window to exit.")
 
 
@@ -77,8 +84,8 @@ def _update_ui():
         bar = chr(9608) * blocks + chr(9617) * (30 - blocks)
         Shapes.SetText(progress_text, "[" + bar + "] " + str(int(pct * 100)).rjust(3) + "%")
 
-        if Sound.WavPlaying and ct >= total_dur - 0.3:
-            Sound.WavStop()
+        if Sound.IsPlaying and ct >= total_dur - 0.3:
+            Sound.Stop()
             Controls.SetButtonCaption(play_btn, "Play")
             Shapes.SetText(status, "Finished")
             Timer.Pause()
@@ -87,8 +94,10 @@ def _update_ui():
 
 
 def on_play():
-    if not Sound.WavPlaying:
-        Sound.WavPlay()
+    if not Sound.IsPlaying:
+        if Sound.PlayPosition >= total_dur - 0.3:
+            Sound.Seek(0)
+        Sound.Play()
         Timer.Interval = 100
         Timer.Tick = _update_ui
     Timer.Resume()
@@ -96,16 +105,16 @@ def on_play():
 
 
 def on_pause():
-    if not Sound._wav_playing:
+    if not Sound.IsPlaying:
         return
-    Sound.WavPause()
+    Sound.Pause()
     Controls.SetButtonCaption(play_btn, "Resume")
     Shapes.SetText(status, "Paused")
     _update_ui()
 
 
 def on_stop():
-    Sound.WavStop()
+    Sound.Stop()
     Controls.SetButtonCaption(play_btn, "Play")
     Shapes.SetText(status, "Stopped")
     Timer.Pause()

@@ -15,6 +15,9 @@ They also fire events, just like ButtonClicked / TextTyped:
     Controls.TableRowSelected  (use Controls.LastSelectedTable + GetSelectedTableRow)
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import GraphicsWindow, Controls, TextWindow
 
 GraphicsWindow.Title = "Extended Controls"

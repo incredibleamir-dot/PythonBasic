@@ -6,6 +6,9 @@ For a smoothly interactive Timer demo, pair it with GraphicsWindow
 (which runs its own event loop) instead of Program.Delay().
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import Clock, Timer, TextWindow, GraphicsWindow
 
 TextWindow.Title = "Clock & Timer Demo"

@@ -5,6 +5,9 @@ This demo shows how Python control flow concepts map to
 Small Basic thinking while using the library's features.
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import TextWindow, Math, Program
 
 TextWindow.Title = "Loops, Conditions & Functions"

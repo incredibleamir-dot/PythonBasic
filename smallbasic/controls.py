@@ -7,6 +7,7 @@
 # --------------------------------------------------------------------------
 
 from typing import Optional
+from tkinter import filedialog
 from smallbasic._utils import classproperty
 from smallbasic._renderer import Renderer
 
@@ -21,6 +22,11 @@ class Controls:
         Controls.ButtonClicked = lambda: TextWindow.WriteLine("Clicked!")
         tb = Controls.AddTextBox(100, 100)
         text = Controls.GetTextBoxText(tb)
+
+        fp = Controls.AddFilePicker("Open...", 100, 150)
+        dp = Controls.AddFolderPicker("Folder...", 200, 150)
+        Controls.FilePicked = lambda: TextWindow.WriteLine(Controls.LastPickedFile)
+        path = Controls.GetPickerPath(fp)
     """
 
     _widgets: dict = {}
@@ -31,12 +37,17 @@ class Controls:
     _last_changed_slider: str = ""
     _last_selected_dropdown: str = ""
     _last_selected_table: str = ""
+    _last_picked_file: str = ""
+    _last_picked_folder: str = ""
+    _picked: dict = {}  # picker name -> chosen path
 
     ButtonClicked = None
     TextTyped = None
     SliderChanged = None
     DropDownSelected = None
     TableRowSelected = None
+    FilePicked = None
+    FolderPicked = None
 
     @classmethod
     def _backend(cls):
@@ -67,6 +78,16 @@ class Controls:
     @classproperty
     def LastSelectedTable(cls) -> str:
         return cls._last_selected_table
+
+    @classproperty
+    def LastPickedFile(cls) -> str:
+        """Path chosen by the most recent file picker (read-only)."""
+        return cls._last_picked_file
+
+    @classproperty
+    def LastPickedFolder(cls) -> str:
+        """Path chosen by the most recent folder picker (read-only)."""
+        return cls._last_picked_folder
 
     @classmethod
     def AddButton(cls, caption: str, left: int, top: int) -> str:
@@ -143,6 +164,7 @@ class Controls:
     def Remove(cls, control_name: str) -> None:
         handle = cls._widgets.pop(control_name, None)
         cls._types.pop(control_name, None)
+        cls._picked.pop(control_name, None)
         if handle is not None:
             cls._backend().control_destroy(handle)
 
@@ -307,3 +329,71 @@ class Controls:
         if handle is not None and cls._types.get(name) == "table":
             return cls._backend().table_selected_row(handle)
         return 0
+
+    # ── File / Folder Pickers ──────────────────────────────────────
+    @classmethod
+    def AddFilePicker(cls, caption: str, left: int, top: int) -> str:
+        """
+        Adds a button that opens a native file-open dialog when clicked.
+
+        After the user picks a file, `Controls.LastPickedFile` holds the path
+        and the `FilePicked` event fires (no arguments). Use GetPickerPath()
+        to read the last path for a specific picker.
+
+        Args:
+            caption: Button label.
+            left, top: Position on the Graphics Window.
+        """
+        cls._backend().ensure()
+        cls._counter += 1
+        name = f"FilePicker{cls._counter}"
+
+        def on_pick():
+            path = filedialog.askopenfilename(
+                parent=cls._get_parent(), title=caption or "Select File")
+            if path:
+                cls._picked[name] = path
+                cls._last_picked_file = path
+                if cls.FilePicked:
+                    cls.FilePicked()
+
+        handle = cls._backend().add_button(caption, left, top, callback=on_pick)
+        cls._widgets[name] = handle
+        cls._types[name] = "filepicker"
+        return name
+
+    @classmethod
+    def AddFolderPicker(cls, caption: str, left: int, top: int) -> str:
+        """
+        Adds a button that opens a native folder-selection dialog when clicked.
+
+        After the user picks a folder, `Controls.LastPickedFolder` holds the
+        path and the `FolderPicked` event fires (no arguments). Use
+        GetPickerPath() to read the last path for a specific picker.
+
+        Args:
+            caption: Button label.
+            left, top: Position on the Graphics Window.
+        """
+        cls._backend().ensure()
+        cls._counter += 1
+        name = f"FolderPicker{cls._counter}"
+
+        def on_pick():
+            path = filedialog.askdirectory(
+                parent=cls._get_parent(), title=caption or "Select Folder")
+            if path:
+                cls._picked[name] = path
+                cls._last_picked_folder = path
+                if cls.FolderPicked:
+                    cls.FolderPicked()
+
+        handle = cls._backend().add_button(caption, left, top, callback=on_pick)
+        cls._widgets[name] = handle
+        cls._types[name] = "folderpicker"
+        return name
+
+    @classmethod
+    def GetPickerPath(cls, picker_name: str) -> str:
+        """Returns the last path chosen by the given file/folder picker, or ''."""
+        return cls._picked.get(picker_name, "")

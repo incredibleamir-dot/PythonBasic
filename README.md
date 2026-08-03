@@ -214,8 +214,9 @@ The `demos/` folder contains runnable examples covering all features:
 | 10 | `demos/10_all_features.py` | Mouse drawing + keyboard + controls |
 | 11 | `demos/11_loops_conditions_functions.py` | For/while loops, if/else, functions |
 | 12 | `demos/12_fractal_tree.py` | Recursive fractal tree with Turtle |
-| 13 | `demos/13_wav_player.py` | WAV player with Play/Pause/Stop |
+| 13 | `demos/13_wav_player.py` | Media player (WAV/MP3) with Play/Pause/Stop/Seek |
 | 14 | `demos/14_mouse_coords.py` | Live mouse X/Y via MouseMove |
+| 15 | `demos/15_file_folder_picker.py` | File/folder pickers + events |
 | 16 | `demos/16_bouncing_ball.py` | Bouncing ball with keyboard + timer |
 | 17 | `demos/17_analog_clock.py` | Analog clock drawing |
 | 18 | `demos/18_binary_converter.py` | Binary / decimal converter |

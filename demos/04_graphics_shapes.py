@@ -2,6 +2,9 @@
 Demo 4: GraphicsWindow - drawing shapes, text, colors
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import GraphicsWindow, Program
 
 GraphicsWindow.Title = "Graphics Shapes Demo"

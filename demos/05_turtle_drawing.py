@@ -2,6 +2,9 @@
 Demo 5: Turtle - Logo-style drawing
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import Turtle, GraphicsWindow, Program
 
 GraphicsWindow.Title = "Turtle Demo"
