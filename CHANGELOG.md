@@ -4,18 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [1.5.0] - 2026-08-03
 
-### Changed
-
-- **Dear PyGui (DPG) removed entirely.** The library now runs on a single pure-tkinter
-  engine (`_backends.py`). All backend/engine selection (`GraphicsEngine`,
-  `create_backend(name)`, dual-engine logic) was deleted — `create_backend()` takes no
-  argument and always returns the tkinter `TkBackend`. This removes the hard DPG
-  dependency and the console spam DPG emitted at shutdown.
-- **Treeview control removed.** `Controls.AddTreeView` and the backend `add_tree` /
-  `SetTableData(tree)` table variant were dropped in favour of the cleaner
-  `Controls.AddTable` (2D array, first row = headers).
-- **`Controls.KeyTyped` remains unimplemented** (focus management with real widgets).
-
 ### Added
 
 - **Events for the extended controls**, following the existing
