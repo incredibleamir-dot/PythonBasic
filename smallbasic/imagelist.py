@@ -7,9 +7,7 @@
 # --------------------------------------------------------------------------
 
 import tkinter as tk
-from tkinter import PhotoImage
 import os
-from typing import Optional
 from smallbasic._renderer import Renderer
 
 
@@ -70,3 +68,10 @@ class ImageList:
         if image_name in cls._tk_images:
             return cls._tk_images[image_name].height()
         return 0
+
+    @classmethod
+    def reset(cls) -> None:
+        """Forget all loaded images (also frees backend image handles)."""
+        cls._images.clear()
+        cls._backend_images.clear()
+        cls._tk_images.clear()

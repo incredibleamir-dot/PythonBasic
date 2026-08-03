@@ -14,10 +14,8 @@ State reads come from GraphicsState.
 """
 
 import math
-import time
 from smallbasic._state import GraphicsState
 from smallbasic._renderer import Renderer
-from smallbasic._utils import classproperty
 
 
 class _Shape:
@@ -59,6 +57,12 @@ class Shapes:
         shape.name = name
         cls._shapes[name] = shape
         return name
+
+    @classmethod
+    def reset(cls) -> None:
+        """Remove all tracked shapes and reset the internal name counter."""
+        cls._shapes.clear()
+        cls._counter = 0
 
     @classmethod
     def _default_style(cls):
@@ -157,20 +161,27 @@ class Shapes:
                     Renderer.coords(shape.canvas_id, *new_coords)
             Renderer.update()
         shape.x, shape.y = x, y
+        # Keep the stored coords in sync with the canvas so a subsequent
+        # Rotate() rotates around the shape's *current* position, not the
+        # original one it was added at.
+        current = Renderer.coords(shape.canvas_id) if shape.canvas_id else None
+        if current:
+            shape.orig_coords = tuple(current)
 
     @classmethod
     def Rotate(cls, shape_name: str, angle: int) -> None:
         shape = cls._shapes.get(shape_name)
         if not shape:
             return
-        shape.angle = angle
+        delta = float(angle) - shape.angle
+        shape.angle = float(angle)
         if shape.canvas_id:
-            coords = list(shape.orig_coords)
-            if len(coords) < 4:
+            coords = Renderer.coords(shape.canvas_id)
+            if coords is None or len(coords) < 4:
                 return
             cx = sum(coords[i] for i in range(0, len(coords), 2)) / (len(coords) // 2)
             cy = sum(coords[i] for i in range(1, len(coords), 2)) / (len(coords) // 2)
-            rad = math.radians(angle)
+            rad = math.radians(delta)
             new_coords = []
             for i in range(0, len(coords), 2):
                 dx = coords[i] - cx
@@ -179,6 +190,7 @@ class Shapes:
                 ny = dx * math.sin(rad) + dy * math.cos(rad) + cy
                 new_coords.extend([nx, ny])
             Renderer.coords(shape.canvas_id, *new_coords)
+            shape.orig_coords = tuple(new_coords)
             Renderer.update()
 
     @classmethod

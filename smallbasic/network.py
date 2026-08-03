@@ -9,7 +9,7 @@
 import urllib.request
 import urllib.parse
 import json
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any
 
 
 class Network:
@@ -145,7 +145,8 @@ class Network:
             user = Network.Get("https://api.example.com/users/1")
         """
         if params:
-            url += "?" + urllib.parse.urlencode(params)
+            sep = "&" if "?" in url else "?"
+            url += sep + urllib.parse.urlencode(params)
         return cls._request("GET", url, headers=headers)
 
     @classmethod

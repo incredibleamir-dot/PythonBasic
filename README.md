@@ -220,6 +220,7 @@ The `demos/` folder contains runnable examples covering all features:
 | 16 | `demos/16_bouncing_ball.py` | Bouncing ball with keyboard + timer |
 | 17 | `demos/17_analog_clock.py` | Analog clock drawing |
 | 18 | `demos/18_binary_converter.py` | Binary / decimal converter |
+| 19 | `demos/19_brick_breaker.py` | Brick-breaker game (arrow keys) |
 | 20 | `demos/20_extended_controls.py` | DropDown, Slider, ProgressBar, Table + events |
 | 21 | `demos/21_live_animation.py` | Animated shapes |
 
@@ -232,6 +233,18 @@ python demos/04_graphics_shapes.py
 > **Note:** `demos/99_all_features.py` is an older "kitchen-sink" tour of the whole
 > library. It predates the "public API only" demo convention and still uses `print`,
 > `os`, `time` and a few internal helpers — prefer the numbered demos above.
+
+## Testing
+
+Run the self-contained smoke/regression suite (no test framework required):
+
+```bash
+python test_smallbasic.py
+```
+
+The suite covers every public object plus edge cases and prints a summary at
+the end (e.g. `450 / 450 checks passed`). A handful of GUI sections open hidden
+tkinter windows; closing the console ends the run.
 
 ## API Reference
 

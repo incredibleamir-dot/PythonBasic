@@ -13,10 +13,12 @@ Backend for the graphics engine.
 surface operations.  ``smallbasic._renderer.Renderer`` is a thin facade
 that delegates to it.  The public Small Basic API (GraphicsWindow /
 Turtle / Shapes / Controls) does not depend on backend internals.
+
+Widget construction lives in ``smallbasic._widgets.TkWidgets``; the
+backend only manages the window/canvas surface and drawing primitives.
 """
 
 import sys
-import time
 from typing import Optional, Any
 
 
@@ -66,9 +68,8 @@ class Backend:
     def get_pixel(self, x, y) -> str: ...
 
     # ── Controls ─────────────────────────────────────────────────
-    def add_button(self, caption, left, top): ...
-    def add_textbox(self, left, top): ...
-    def add_multi_textbox(self, left, top): ...
+    def add_button(self, caption, left, top, callback=None): ...
+    def add_textbox(self, left, top, callback=None, multiline=False): ...
     def button_caption(self, handle, value=None): ...
     def textbox_text(self, handle, value=None): ...
     def control_move(self, handle, x, y): ...
@@ -108,10 +109,13 @@ class TkBackend(Backend):
         self._tk = tk
         self._root: Optional[tk.Tk] = None
         self._canvas: Optional[tk.Canvas] = None
+        self._widgets = None
         self._shown = False
         self._dispatching = False
         # event bindings must be attached before the handlers are used
         self._bound = False
+        # coalesce rapid <Motion> events so the idle queue is not flooded
+        self._motion_pending = False
 
     # -- window management ------------------------------------------
     def ensure(self):
@@ -120,6 +124,17 @@ class TkBackend(Backend):
             self._root = self._tk.Tk()
             self._root.withdraw()
             self._root.protocol("WM_DELETE_WINDOW", self._on_close)
+        if self._canvas is None:
+            # Create the canvas eagerly so drawing before Show() works.
+            self._canvas = self._tk.Canvas(
+                self._root,
+                width=S.width,
+                height=S.height,
+                bg=S.bg_color,
+                highlightthickness=0,
+            )
+            self._canvas.pack()
+            self._bind_events()
         return self._root
 
     def _on_close(self):
@@ -130,16 +145,6 @@ class TkBackend(Backend):
     def show(self):
         from smallbasic._state import GraphicsState as S
         self.ensure()
-        if self._canvas is None:
-            self._canvas = self._tk.Canvas(
-                self._root,
-                width=S.width,
-                height=S.height,
-                bg=S.bg_color,
-                highlightthickness=0,
-            )
-            self._canvas.pack()
-            self._bind_events()
         if not self._shown:
             self._root.deiconify()
             self._root.title(S.title)
@@ -159,8 +164,9 @@ class TkBackend(Backend):
                 self._root.destroy()
             except Exception:
                 pass
-            self._root = None
-            self._canvas = None
+        self._root = None
+        self._canvas = None
+        self._widgets = None
 
     def wait_for_close(self):
         if self._root:
@@ -225,8 +231,14 @@ class TkBackend(Backend):
         from smallbasic._state import GraphicsState as S
         S.mouse_x = event.x
         S.mouse_y = event.y
-        if S.MouseMove and self._root:
-            self._root.after_idle(lambda: self._dispatch(S.MouseMove))
+        if S.MouseMove and self._root and not self._motion_pending:
+            self._motion_pending = True
+            self._root.after_idle(self._dispatch_motion)
+
+    def _dispatch_motion(self):
+        from smallbasic._state import GraphicsState as S
+        self._motion_pending = False
+        self._dispatch(S.MouseMove)
 
     # -- display update ----------------------------------------------
     def update(self):
@@ -389,180 +401,90 @@ class TkBackend(Backend):
                     pass
         return S.bg_color
 
-    # -- controls ------------------------------------------------------
+    # -- controls (delegated to TkWidgets) ----------------------------
+    def _widget_helpers(self):
+        if self._widgets is None:
+            from smallbasic._widgets import TkWidgets
+            self._widgets = TkWidgets(self)
+        return self._widgets
+
     def add_button(self, caption, left, top, callback=None):
         self.ensure()
-        btn = self._tk.Button(self._root, text=caption,
-                              relief=self._tk.RAISED, bd=2)
-        if callback:
-            btn.config(command=callback)
-        btn.place(x=left, y=top)
-        return btn
+        return self._widget_helpers().add_button(caption, left, top, callback=callback)
 
     def add_textbox(self, left, top, callback=None, multiline=False):
         self.ensure()
-        if multiline:
-            w = self._tk.Text(self._root, relief=self._tk.SUNKEN, bd=2,
-                              height=4, width=20)
-            w.place(x=left, y=top, width=200, height=80)
-        else:
-            w = self._tk.Entry(self._root, relief=self._tk.SUNKEN, bd=2)
-            w.place(x=left, y=top, width=120, height=25)
-        if callback:
-            w.bind("<KeyRelease>", lambda e: callback())
-        return w
+        return self._widget_helpers().add_textbox(left, top, callback=callback,
+                                           multiline=multiline)
 
     def button_caption(self, handle, value=None):
-        if value is None:
-            return handle.cget("text")
-        handle.config(text=value)
+        return self._widget_helpers().button_caption(handle, value)
 
     def textbox_text(self, handle, value=None):
-        if value is None:
-            if isinstance(handle, self._tk.Entry):
-                return handle.get()
-            return handle.get("1.0", "end-1c")
-        if isinstance(handle, self._tk.Entry):
-            handle.delete(0, "end")
-            handle.insert(0, value)
-        else:
-            handle.delete("1.0", "end")
-            handle.insert("1.0", value)
+        return self._widget_helpers().textbox_text(handle, value)
 
     def control_move(self, handle, x, y):
-        handle.place(x=x, y=y)
+        self._widget_helpers().control_move(handle, x, y)
 
     def control_size(self, handle, w, h):
-        if isinstance(handle, self._tk.Text):
-            handle.config(width=max(1, w // 10), height=max(1, h // 20))
-        handle.place_configure(width=w, height=h)
+        self._widget_helpers().control_size(handle, w, h)
 
     def control_visible(self, handle, visible):
-        if visible:
-            try:
-                handle.place()
-            except Exception:
-                handle.place(x=0, y=0)
-        else:
-            handle.place_forget()
+        self._widget_helpers().control_visible(handle, visible)
 
     def control_destroy(self, handle):
-        handle.destroy()
+        self._widget_helpers().control_destroy(handle)
 
-    # -- extended controls -------------------------------------------
     def add_dropdown(self, items, left, top, callback=None):
         self.ensure()
-        from tkinter import ttk
-        combo = ttk.Combobox(self._root, values=list(items),
-                             state="readonly")
-        combo.place(x=left, y=top, width=140, height=25)
-        if callback:
-            combo.bind("<<ComboboxSelected>>", lambda e: callback())
-        return combo
+        return self._widget_helpers().add_dropdown(items, left, top, callback=callback)
 
     def dropdown_selected(self, handle):
-        return handle.get()
+        return self._widget_helpers().dropdown_selected(handle)
 
     def dropdown_set(self, handle, index):
-        try:
-            handle.current(int(index))
-        except Exception:
-            pass
+        self._widget_helpers().dropdown_set(handle, index)
 
     def dropdown_count(self, handle):
-        try:
-            return len(handle.cget("values"))
-        except Exception:
-            return 0
+        return self._widget_helpers().dropdown_count(handle)
 
     def dropdown_items(self, handle):
-        try:
-            return list(handle.cget("values"))
-        except Exception:
-            return []
+        return self._widget_helpers().dropdown_items(handle)
 
     def add_slider(self, minimum, maximum, left, top, callback=None):
         self.ensure()
-        var = self._tk.DoubleVar(value=int(minimum))
-        s = self._tk.Scale(self._root, from_=minimum, to=maximum,
-                           variable=var, orient="horizontal", showvalue=True)
-        s.place(x=left, y=top, width=140)
-        s._sb_var = var
-        if callback:
-            var.trace_add("write", lambda *a: callback())
-        return s
+        return self._widget_helpers().add_slider(minimum, maximum, left, top,
+                                          callback=callback)
 
     def slider_get(self, handle):
-        try:
-            return int(float(handle.get()))
-        except Exception:
-            return 0
+        return self._widget_helpers().slider_get(handle)
 
     def slider_set(self, handle, value):
-        # use the widget-level set (like a user drag) so the SliderChanged
-        # callback observes the NEW value; var.set() fires the trace before
-        # the variable reflects the new value.
-        handle.set(value)
+        self._widget_helpers().slider_set(handle, value)
 
     def add_progressbar(self, left, top):
         self.ensure()
-        from tkinter import ttk
-        p = ttk.Progressbar(self._root, maximum=100, mode="determinate")
-        p.place(x=left, y=top, width=160, height=22)
-        return p
+        return self._widget_helpers().add_progressbar(left, top)
 
     def progress_get(self, handle):
-        try:
-            return int(handle["value"])
-        except Exception:
-            return 0
+        return self._widget_helpers().progress_get(handle)
 
     def progress_set(self, handle, value):
-        handle["value"] = max(0, min(100, int(value)))
-
-    def _populate_table(self, tree, data):
-        for item in tree.get_children():
-            tree.delete(item)
-        rows = [list(r) for r in data]
-        if not rows:
-            return
-        headers = [str(c) for c in rows[0]]
-        tree.configure(columns=headers)
-        for h in headers:
-            tree.heading(h, text=h)
-            tree.column(h, width=100, anchor="w")
-        for row in rows[1:]:
-            tree.insert("", "end", values=[str(c) for c in row])
+        self._widget_helpers().progress_set(handle, value)
 
     def add_table(self, data, left, top, callback=None):
         self.ensure()
-        from tkinter import ttk
-        rows = [list(r) for r in data]
-        headers = [str(c) for c in rows[0]] if rows else []
-        tree = ttk.Treeview(self._root, columns=headers, show="headings")
-        tree.column("#0", width=0, stretch=False)
-        self._populate_table(tree, data)
-        tree.place(x=left, y=top, width=620, height=220)
-        if callback:
-            tree.bind("<<TreeviewSelect>>", lambda e: callback())
-        return tree
+        return self._widget_helpers().add_table(data, left, top, callback=callback)
 
     def table_set_data(self, handle, data):
-        self._populate_table(handle, data)
+        self._widget_helpers().table_set_data(handle, data)
 
     def table_selected_row(self, handle):
-        try:
-            sel = handle.selection()
-            if sel:
-                return int(handle.index(sel[0])) + 1
-        except Exception:
-            pass
-        return 0
+        return self._widget_helpers().table_selected_row(handle)
 
-    # -- misc ----------------------------------------------------------
     def show_message(self, title, text):
         self.ensure()
-        self._tk.messagebox.showinfo(title, text)
+        self._widget_helpers().show_message(title, text)
 
 
 def create_backend() -> TkBackend:

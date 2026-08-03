@@ -19,7 +19,6 @@ Renderer methods (including ``create_*``/``coords``/``itemconfig``).
 """
 
 import random
-import sys
 import time
 from typing import Optional, Any
 from smallbasic._state import GraphicsState
@@ -269,6 +268,7 @@ class Renderer:
         if cls._backend:
             cls._backend.clear()
         cls._objects.clear()
+        cls._resized_images.clear()
 
     @classmethod
     def delete(cls, cid: int) -> None:
@@ -353,14 +353,6 @@ class Renderer:
     def _register(cls, cid: int, kind: str = "", **extra):
         if cid is not None:
             cls._objects[cid] = {"type": kind, **extra}
-
-    @classmethod
-    def get_metadata(cls, cid: int) -> dict:
-        return cls._objects.get(cid, {})
-
-    @classmethod
-    def get_all_objects(cls) -> dict:
-        return cls._objects
 
     # ── Utility ────────────────────────────────────────────────────
 

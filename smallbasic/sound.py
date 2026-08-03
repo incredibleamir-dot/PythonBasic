@@ -190,9 +190,14 @@ class Sound(metaclass=_PropSetMeta):
     def PlayAndWait(cls, path: str = None) -> None:
         """
         Plays an audio file and blocks until playback finishes.
+
+        If the file duration could not be determined (0.0), playback is
+        still awaited using a generous safety cap instead of returning
+        immediately.
         """
         cls.Play(path)
-        while cls._playing and time.time() - cls._play_start < cls._duration:
+        max_wait = cls._duration if cls._duration > 0 else 120.0
+        while cls._playing and time.time() - cls._play_start < max_wait:
             time.sleep(0.05)
         cls.Stop()
 

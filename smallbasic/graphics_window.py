@@ -9,161 +9,51 @@
 """
 GraphicsWindow — public API for 2D drawing and events.
 
-This module provides the GraphicsWindow class (the public API)
-and the _TkWindow class (internal singleton that other modules
-such as Controls import for the tkinter root window).
-
-Drawing operations are delegated to smallbasic._renderer.Renderer.
-Shared state lives in smallbasic._state.GraphicsState.
+Drawing operations are delegated to ``smallbasic._renderer.Renderer``.
+All property/event state is owned by ``smallbasic._state.GraphicsState``;
+this module only forwards public property assignments to it.
 """
 
-import tkinter as tk
-import tkinter.messagebox
-from typing import Optional, Callable
-from smallbasic._utils import classproperty
 from smallbasic._state import GraphicsState
 from smallbasic._renderer import Renderer
-
-
-# ── Backward-compatible window handle for Controls & ImageList ─────
-
-class _TkWindow:
-    """Internal singleton — wraps Renderer for backward compatibility.
-
-    Controls and ImageList import this class to access the tkinter
-    root window.  New code should use GraphicsState / Renderer directly.
-    """
-    _instance = None
-    _root: Optional[tk.Tk] = None
-    _canvas: Optional[tk.Canvas] = None
-    _width: int = 640
-    _height: int = 480
-    _left: int = 100
-    _top: int = 100
-    _title: str = "Small Basic Graphics Window"
-    _bg_color: str = "White"
-    _pen_color: str = "Black"
-    _pen_width: int = 2
-    _brush_color: str = "Gray"
-    _font_name: str = "Consolas"
-    _font_size: int = 12
-    _font_bold: bool = False
-    _font_italic: bool = False
-    _can_resize: bool = True
-    _last_key: str = ""
-    _last_text: str = ""
-    _mouse_x: int = 0
-    _mouse_y: int = 0
-    _shown: bool = False
-
-    KeyDown: Optional[Callable] = None
-    KeyUp: Optional[Callable] = None
-    MouseDown: Optional[Callable] = None
-    MouseUp: Optional[Callable] = None
-    MouseMove: Optional[Callable] = None
-    TextInput: Optional[Callable] = None
-    ButtonClicked: Optional[Callable] = None
-    TextTyped: Optional[Callable] = None
-
-    @classmethod
-    def ensure(cls):
-        root = Renderer.ensure()
-        cls._root = root
-        cls._canvas = Renderer._canvas
-        return root
-
-    @classmethod
-    def _on_close(cls):
-        Renderer._on_close()
-
-    @classmethod
-    def show(cls):
-        Renderer.show()
-        cls._root = Renderer._root
-        cls._canvas = Renderer._canvas
-
-    @classmethod
-    def hide(cls):
-        Renderer.hide()
-
-    @classmethod
-    def wait_for_close(cls):
-        Renderer.wait_for_close()
-
-    @classmethod
-    def update(cls):
-        Renderer.update()
-
-    @classmethod
-    def destroy(cls):
-        Renderer.destroy()
-        cls._root = None
-        cls._canvas = None
 
 
 # ── Event names & property map ─────────────────────────────────────
 
 _EVENT_NAMES = {'KeyDown', 'KeyUp', 'MouseDown', 'MouseUp', 'MouseMove', 'TextInput'}
 
+# Public property name -> GraphicsState attribute
 _PROP_MAP = {
-    'BackgroundColor': '_bg_color',
-    'BrushColor': '_brush_color',
-    'PenColor': '_pen_color',
-    'PenWidth': '_pen_width',
-    'FontName': '_font_name',
-    'FontSize': '_font_size',
-    'FontBold': '_font_bold',
-    'FontItalic': '_font_italic',
-    'Title': '_title',
-    'Width': '_width',
-    'Height': '_height',
-    'Left': '_left',
-    'Top': '_top',
-    'CanResize': '_can_resize',
-    'LastKey': '_last_key',
-    'LastText': '_last_text',
-    'MouseX': '_mouse_x',
-    'MouseY': '_mouse_y',
-}
-
-# Mirror mapping: GraphicsState attribute -> _TkWindow attribute
-_STATE_ATTR = {
-    '_bg_color': 'bg_color',
-    '_brush_color': 'brush_color',
-    '_pen_color': 'pen_color',
-    '_pen_width': 'pen_width',
-    '_font_name': 'font_name',
-    '_font_size': 'font_size',
-    '_font_bold': 'font_bold',
-    '_font_italic': 'font_italic',
-    '_title': 'title',
-    '_width': 'width',
-    '_height': 'height',
-    '_left': 'left',
-    '_top': 'top',
-    '_can_resize': 'can_resize',
-    '_last_key': 'last_key',
-    '_last_text': 'last_text',
-    '_mouse_x': 'mouse_x',
-    '_mouse_y': 'mouse_y',
+    'BackgroundColor': 'bg_color',
+    'BrushColor': 'brush_color',
+    'PenColor': 'pen_color',
+    'PenWidth': 'pen_width',
+    'FontName': 'font_name',
+    'FontSize': 'font_size',
+    'FontBold': 'font_bold',
+    'FontItalic': 'font_italic',
+    'Title': 'title',
+    'Width': 'width',
+    'Height': 'height',
+    'Left': 'left',
+    'Top': 'top',
+    'CanResize': 'can_resize',
+    'LastKey': 'last_key',
+    'LastText': 'last_text',
+    'MouseX': 'mouse_x',
+    'MouseY': 'mouse_y',
 }
 
 
 class _GWMeta(type):
-    """Metaclass that forwards property / event assignments to both
-    GraphicsState (canonical) and _TkWindow (backward compat)."""
+    """Metaclass that forwards property / event assignments to GraphicsState."""
 
     def __setattr__(cls, name, value):
         if name in _EVENT_NAMES:
             setattr(GraphicsState, name, value)
-            setattr(_TkWindow, name, value)
             return
         if name in _PROP_MAP:
-            tk_attr = _PROP_MAP[name]
-            setattr(_TkWindow, tk_attr, value)
-            state_attr = _STATE_ATTR.get(tk_attr)
-            if state_attr:
-                setattr(GraphicsState, state_attr, value)
+            setattr(GraphicsState, _PROP_MAP[name], value)
             _apply_setting(name)
             return
         super().__setattr__(name, value)
@@ -172,11 +62,7 @@ class _GWMeta(type):
         if name in _EVENT_NAMES:
             return getattr(GraphicsState, name)
         if name in _PROP_MAP:
-            tk_attr = _PROP_MAP[name]
-            state_attr = _STATE_ATTR.get(tk_attr)
-            if state_attr:
-                return getattr(GraphicsState, state_attr)
-            return getattr(_TkWindow, tk_attr)
+            return getattr(GraphicsState, _PROP_MAP[name])
         raise AttributeError(f"type object '{cls.__name__}' has no attribute '{name}'")
 
 
@@ -292,8 +178,6 @@ class GraphicsWindow(metaclass=_GWMeta):
     @classmethod
     def DrawImage(cls, image_name: str, x: int, y: int) -> None:
         Renderer.draw_image(image_name, x, y)
-
-    _resized_images: dict = {}
 
     @classmethod
     def DrawResizedImage(cls, image_name: str, x: int, y: int,

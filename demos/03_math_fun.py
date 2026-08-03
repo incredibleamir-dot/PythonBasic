@@ -8,8 +8,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from smallbasic import TextWindow, Math
 
 TextWindow.Title = "Math Demo"
-TextWindow.ForegroundColor = "White"
-TextWindow.BackgroundColor = "DarkBlue"
+TextWindow.ForegroundColor = "Green"
+TextWindow.BackgroundColor = "Black"
 TextWindow.Show()
 
 TextWindow.WriteLine("=== Math Library ===")

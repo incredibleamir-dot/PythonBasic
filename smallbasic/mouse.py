@@ -7,6 +7,7 @@
 # --------------------------------------------------------------------------
 
 import ctypes
+import ctypes.wintypes
 from smallbasic._utils import classproperty
 
 

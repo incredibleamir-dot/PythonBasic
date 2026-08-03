@@ -147,3 +147,8 @@ class Array:
         if isinstance(array, dict):
             return array
         return {}
+
+    @classmethod
+    def reset(cls) -> None:
+        """Forget all named array stores."""
+        cls._stores.clear()

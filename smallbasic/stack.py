@@ -6,7 +6,7 @@
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------
 
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 
 class Stack:
@@ -65,3 +65,8 @@ class Stack:
         if stack:
             return stack.pop()
         return ""
+
+    @classmethod
+    def reset(cls) -> None:
+        """Forget all named stacks."""
+        cls._stacks.clear()

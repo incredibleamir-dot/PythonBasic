@@ -7,7 +7,51 @@
 # --------------------------------------------------------------------------
 
 import sys
+import ctypes
 from smallbasic._utils import classproperty, _PropSetMeta
+
+
+class _COORD(ctypes.Structure):
+    _fields_ = [("X", ctypes.c_short), ("Y", ctypes.c_short)]
+
+
+class _SMALL_RECT(ctypes.Structure):
+    _fields_ = [
+        ("Left", ctypes.c_short), ("Top", ctypes.c_short),
+        ("Right", ctypes.c_short), ("Bottom", ctypes.c_short),
+    ]
+
+
+class _CONSOLE_SCREEN_BUFFER_INFO(ctypes.Structure):
+    _fields_ = [
+        ("dwSize", _COORD),
+        ("dwCursorPosition", _COORD),
+        ("wAttributes", ctypes.c_ushort),
+        ("srWindow", _SMALL_RECT),
+        ("dwMaximumWindowSize", _COORD),
+    ]
+
+
+def _get_cursor_position():
+    """Return the console cursor (column, row) or (0, 0) on failure."""
+    try:
+        std_handle = ctypes.windll.kernel32.GetStdHandle(-11)
+        buf = _CONSOLE_SCREEN_BUFFER_INFO()
+        ctypes.windll.kernel32.GetConsoleScreenBufferInfo(
+            std_handle, ctypes.byref(buf))
+        return int(buf.dwCursorPosition.X), int(buf.dwCursorPosition.Y)
+    except Exception:
+        return 0, 0
+
+
+def _set_cursor_position(x, y):
+    """Position the console cursor at (column, row); no-op on failure."""
+    try:
+        std_handle = ctypes.windll.kernel32.GetStdHandle(-11)
+        coord = (int(x) & 0xFFFF) | ((int(y) & 0xFFFF) << 16)
+        ctypes.windll.kernel32.SetConsoleCursorPosition(std_handle, coord)
+    except Exception:
+        pass
 
 
 class _ConsoleWindow:
@@ -150,20 +194,24 @@ class TextWindow(metaclass=_PropSetMeta):
     @classproperty
     def CursorLeft(cls) -> int:
         """Gets or sets the cursor's column position."""
-        return 0
+        x, _ = _get_cursor_position()
+        return x
 
     @CursorLeft.setter
     def CursorLeft(cls, value: int) -> None:
-        pass
+        x, y = _get_cursor_position()
+        _set_cursor_position(value, y)
 
     @classproperty
     def CursorTop(cls) -> int:
         """Gets or sets the cursor's row position."""
-        return 0
+        _, y = _get_cursor_position()
+        return y
 
     @CursorTop.setter
     def CursorTop(cls, value: int) -> None:
-        pass
+        x, y = _get_cursor_position()
+        _set_cursor_position(x, value)
 
     @classproperty
     def Left(cls) -> int:

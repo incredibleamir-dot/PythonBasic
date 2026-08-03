@@ -230,12 +230,9 @@ class Math:
     def Round(cls, value: Number) -> int:
         """
         Rounds a number to the nearest integer.
-        
-        Args:
-            value: The input number.
-            
-        Returns:
-            The rounded integer.
+
+        Uses Python's ``round()`` (banker's rounding: halves round to
+        the nearest even integer), which matches Small Basic's behaviour.
         """
         return round(value)
 
@@ -275,13 +272,11 @@ class Math:
     def Remainder(cls, dividend: Number, divisor: Number) -> Number:
         """
         Gets the remainder of a division.
-        
-        Args:
-            dividend: The number to divide.
-            divisor: The divisor.
-            
-        Returns:
-            The remainder.
+
+        Uses Python's ``%`` operator, so the result takes the sign of the
+        divisor (``Remainder(-10, 3) == 2``).  This differs from Small
+        Basic / .NET's truncating remainder (``-1``) for negative
+        dividends, and is intentionally Python-idiomatic.
         """
         return dividend % divisor
 

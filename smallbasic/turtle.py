@@ -86,6 +86,7 @@ class Turtle(metaclass=_PropSetMeta):
         cls._x = float(value)
         if cls._visible:
             cls._ensure_window()
+            cls._draw_arrow()
 
     @classproperty
     def Y(cls) -> float:
@@ -96,6 +97,7 @@ class Turtle(metaclass=_PropSetMeta):
         cls._y = float(value)
         if cls._visible:
             cls._ensure_window()
+            cls._draw_arrow()
 
     @classmethod
     def Show(cls) -> None:

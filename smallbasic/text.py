@@ -6,9 +6,6 @@
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------
 
-from typing import Union
-
-
 class Text:
     """
     Provides helpful operations for working with text.
@@ -103,8 +100,12 @@ class Text:
             The extracted substring.
         """
         t = str(text)
-        start_idx = max(0, int(start) - 1)
-        return t[start_idx:start_idx + int(length)]
+        try:
+            start_idx = max(0, int(start) - 1)
+            length = max(0, int(length))
+        except (TypeError, ValueError):
+            return ""
+        return t[start_idx:start_idx + length]
 
     @classmethod
     def GetSubTextToEnd(cls, text: str, start: int) -> str:
@@ -119,7 +120,10 @@ class Text:
             The substring from start to end.
         """
         t = str(text)
-        start_idx = max(0, int(start) - 1)
+        try:
+            start_idx = max(0, int(start) - 1)
+        except (TypeError, ValueError):
+            return ""
         return t[start_idx:]
 
     @classmethod

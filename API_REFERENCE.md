@@ -1,6 +1,6 @@
 # Python Small Basic — API Reference Guide
 
-> **Version 1.5.0** | Windows-only (uses `winsound`, `ctypes`, `tkinter`)
+> **Version 1.6.1** | Windows-only (uses `winsound`, `ctypes`, `tkinter`)
 
 ---
 
@@ -59,8 +59,8 @@ Console-based text input/output with color support. Calls are class-level.
 | `BackgroundColor` | `str` | ✓ | ✓ | Background color name |
 | `Left` | `int` | ✓ | ✓ | Left position of the console window |
 | `Top` | `int` | ✓ | ✓ | Top position of the console window |
-| `CursorLeft` | `int` | ✓ | ✓ | Cursor column (stub — always returns 0) |
-| `CursorTop` | `int` | ✓ | ✓ | Cursor row (stub — always returns 0) |
+| `CursorLeft` | `int` | ✓ | ✓ | Cursor column position (Windows console) |
+| `CursorTop` | `int` | ✓ | ✓ | Cursor row position (Windows console) |
 
 **Valid color names:** `Black`, `DarkBlue`, `DarkGreen`, `DarkCyan`, `DarkRed`, `DarkMagenta`, `DarkYellow`, `Gray`, `DarkGray`, `Blue`, `Green`, `Cyan`, `Red`, `Magenta`, `Yellow`, `White`
 
@@ -119,7 +119,7 @@ Static mathematical functions and constants.
 | `Abs(x)` | `(Number) -> Number` | Absolute value | `abs(x)` |
 | `Ceiling(x)` | `(Number) -> int` | Ceiling | `math.ceil(x)` |
 | `Floor(x)` | `(Number) -> int` | Floor | `math.floor(x)` |
-| `Round(x)` | `(Number) -> int` | Nearest integer | `round(x)` |
+| `Round(x)` | `(Number) -> int` | Nearest integer (banker's rounding) | `round(x)` |
 | `Sin(deg)` | `(Number) -> float` | Sine of angle in degrees | |
 | `Cos(deg)` | `(Number) -> float` | Cosine of angle in degrees | |
 | `Tan(deg)` | `(Number) -> float` | Tangent of angle in degrees | |
@@ -134,7 +134,7 @@ Static mathematical functions and constants.
 | `Min(*values)` | `(*Number) -> Number` | Minimum value (0 if no args) | |
 | `Sum(*values)` | `(*Number) -> Number` | Sum of all arguments | |
 | `Average(*values)` | `(*Number) -> float` | Average (0.0 if no args) | |
-| `Remainder(d, v)` | `(Number, Number) -> Number` | `d % v` | |
+| `Remainder(d, v)` | `(Number, Number) -> Number` | `d % v` (Python sign semantics — differs from Small Basic for negative dividends) | |
 | `GetRandomNumber(max)` | `(int) -> int` | Random integer 1…max | |
 | `GetDegrees(rad)` | `(Number) -> float` | Convert radians to degrees | |
 | `GetRadians(deg)` | `(Number) -> float` | Convert degrees to radians | |
@@ -861,3 +861,20 @@ from smallbasic import (
 # or
 from smallbasic import *
 ```
+
+---
+
+## Appendix: State Reset
+
+The library keeps global state in memory (named arrays, stacks, shapes,
+controls and loaded images). A few objects expose a `reset()` class method
+so a long-running process can start cleanly without re-importing the package:
+
+- `Array.reset()` — forget all named arrays
+- `Stack.reset()` — forget all named stacks
+- `Shapes.reset()` — remove all tracked shapes and reset the name counter
+- `Controls.reset()` — destroy every widget and reset counters/state
+- `ImageList.reset()` — forget all loaded images (frees backend handles)
+
+`GraphicsState`, `Shapes`, `Controls` and `Renderer` also reset their shared
+state if you re-create the graphics window between runs.

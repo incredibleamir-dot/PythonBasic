@@ -57,7 +57,7 @@ check("font_italic default False", GraphicsState.font_italic is False)
 check("left default 100", GraphicsState.left == 100)
 check("top default 100", GraphicsState.top == 100)
 check("can_resize default True", GraphicsState.can_resize is True)
-check("shown default False", GraphicsState.shown is False)
+check("dead 'shown' attr removed", not hasattr(GraphicsState, "shown"))
 
 # Mutation
 GraphicsState.pen_color = "Red"

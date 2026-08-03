@@ -6,7 +6,6 @@
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------
 
-from typing import Optional
 from tkinter import filedialog
 from smallbasic._utils import classproperty
 from smallbasic._renderer import Renderer
@@ -397,3 +396,18 @@ class Controls:
     def GetPickerPath(cls, picker_name: str) -> str:
         """Returns the last path chosen by the given file/folder picker, or ''."""
         return cls._picked.get(picker_name, "")
+
+    @classmethod
+    def reset(cls) -> None:
+        """Destroy every widget and reset all internal counters/state."""
+        for name in list(cls._widgets):
+            cls.Remove(name)
+        cls._counter = 0
+        cls._last_clicked_button = ""
+        cls._last_typed_textbox = ""
+        cls._last_changed_slider = ""
+        cls._last_selected_dropdown = ""
+        cls._last_selected_table = ""
+        cls._last_picked_file = ""
+        cls._last_picked_folder = ""
+        cls._picked.clear()

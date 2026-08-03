@@ -2,7 +2,58 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.6.0] - 2026-08-03
+## [1.6.1] - 2026-08-03
+
+### Fixed
+
+- **Drawing before `GraphicsWindow.Show()` now works.** The tkinter canvas is
+  created eagerly on `ensure()`, so `Shapes.Add*` / `Draw*` calls made before
+  the window is shown no longer silently do nothing, and those shapes stay
+  usable after `Show()`.
+- **`Shapes.Rotate` no longer ignores a previous `Move`.** Rotation is now
+  relative and applied around the shape's *current* canvas position, and the
+  stored coordinates stay in sync, so repeated `Rotate` calls accumulate and
+  a rotate after a move stays where the shape is.
+- **`Mouse` no longer depends on an incidental global import.** `mouse.py` now
+  imports `ctypes.wintypes` explicitly; cursor reads previously failed (and
+  returned cached coordinates) when `smallbasic.sound` was not imported.
+- **`Turtle.X` / `Turtle.Y` re-draw the sprite** when the turtle is visible.
+- **`Sound.PlayAndWait` no longer returns immediately** for files whose
+  duration could not be determined (uses a safety cap).
+- **`Network.Get` query parameters** now append with `&` when the URL already
+  contains a query string.
+- **`Math.Round` / `Math.Remainder` semantics are now documented** (banker's
+  rounding; Python `%` sign behaviour).
+- **Resized-image cache is cleared** when the canvas is cleared, preventing an
+  unbounded `PhotoImage` handle leak.
+- **`TextWindow.CursorLeft` / `CursorTop`** are now implemented for the Windows
+  console instead of returning stubs.
+
+### Changed
+
+- **Removed the legacy `_TkWindow` shim.** `GraphicsState` is the single source
+  of truth for graphics state; the `graphics_window` metaclass now forwards
+  directly to it instead of mirroring a duplicate state object.
+- **Widget construction extracted into `smallbasic/_widgets.py`** (`TkWidgets`)
+  so `TkBackend` only manages the window/canvas surface.
+- **Added `reset()` helpers** on `Array`, `Stack`, `Shapes`, `Controls` and
+  `ImageList` for stateful re-runs.
+- Removed dead code: unused imports, the unimplemented `Backend.add_multi_textbox`
+  interface method, the unused `GraphicsState.shown` / `GraphicsState.ButtonClicked`
+  / `GraphicsState.TextTyped` attributes, and the unused
+  `Renderer.get_metadata` / `get_all_objects` helpers.
+- Added a `smallbasic/py.typed` marker for type-aware consumers.
+
+### Performance
+
+- **Coalesced the `<Motion>` event.** Rapid mouse movement no longer floods the
+  Tk idle queue with one scheduled dispatch per event.
+- **`Text.GetSubText` / `GetSubTextToEnd`** now return `""` for non-numeric
+  start/length arguments instead of raising `ValueError`.
+
+### Tests
+- Updated the suite for the removed `GraphicsState.shown` dead attribute.
+  **450 / 450 checks pass.**
 
 ### Added
 
@@ -50,6 +101,8 @@ All notable changes to this project will be documented in this file.
 
 - **New demo** `demos/15_file_folder_picker.py` — file-open and folder pickers with
   `FilePicked` / `FolderPicked` events showing the chosen path.
+- **New demo** `demos/19_brick_breaker.py` — a brick-breaker game: an infinite game loop
+  drives the paddle (Left / Right arrow keys), a bouncing ball and breakable bricks.
 
 ### Tests
 
