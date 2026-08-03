@@ -16,10 +16,10 @@ All notable changes to this project will be documented in this file.
     Use `Controls.LastSelectedTable` and `Controls.GetSelectedTableRow(name)`
     (returns the 1-based row index, or `0` if none).
 - **`Controls.GetSelectedTableRow(name)`** — returns the currently selected row.
-- Author / version header block (`# Purpose`, `# Version`, `# Author`, `# Email`)
-  added to all 25 core modules.
-- **Test suite expanded to 427 checks** (new section 22c covers the extended-control
-  events: slider trace, dropdown selection, table selection).
+- **Author / version header block** (`# Purpose`, `# Version`, `# Author`,
+  `# Email`) added to all 25 core modules.
+- **Test suite expanded to 427 checks** — new section 22c covers the
+  extended-control events (slider trace, dropdown selection, table selection).
 
 ### Fixed
 
