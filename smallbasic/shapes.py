@@ -72,9 +72,12 @@ class Shapes:
     @classmethod
     def AddRectangle(cls, width: int, height: int) -> str:
         Renderer.ensure()
-        cid = Renderer.create_rectangle(0, 0, width, height,
-                                        **cls._default_style())
-        shape = _Shape("", cid, "rectangle", (0, 0, width, height))
+        # Drawn as a 4-corner polygon so Rotate() can turn it in 2D.
+        # A tkinter `rectangle` item is always axis-aligned: rotating its
+        # corner points would only resize the bounding box, never rotate it.
+        coords = (0, 0, width, 0, width, height, 0, height)
+        cid = Renderer.create_polygon(coords, **cls._default_style())
+        shape = _Shape("", cid, "polygon", coords)
         return cls._add_shape(shape)
 
     @classmethod
