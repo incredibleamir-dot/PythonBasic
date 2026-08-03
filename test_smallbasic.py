@@ -1275,9 +1275,27 @@ TextWindow.Left = 100
 TextWindow.Top = 100
 check("TextWindow.Clear native", (TextWindow.Clear(), True)[1])
 
-# -- 40.7 Shapes dead field removed ---------------------------------------
+# -- 40.7 _Shape dead field removed ---------------------------------------
 from smallbasic.shapes import _Shape as _SBShape
 check("_Shape has no orig_coords", not hasattr(_SBShape, "orig_coords"))
+
+# -- 40.8 GetPixel reads a drawn image's pixels ----------------------------
+try:
+    from PIL import Image as _PILImage2
+    _px_path = os.path.join(tempfile.gettempdir(), "sb_px_read.png")
+    _px_img = _PILImage2.new("RGB", (2, 2), (0, 0, 255))
+    _px_img.putpixel((0, 0), (255, 0, 0))
+    _px_img.save(_px_path)
+    _px_name = ImageList.LoadImage(_px_path)
+    GraphicsWindow.Show()
+    GraphicsWindow.DrawImage(_px_name, 10, 30)
+    check("GetPixel reads drawn image", GraphicsWindow.GetPixel(10, 30) == "#FF0000")
+    check("GetPixel reads another image pixel", GraphicsWindow.GetPixel(10, 31) == "#0000FF")
+    GraphicsWindow.Hide()
+    os.remove(_px_path)
+except Exception as e:
+    check("GetPixel reads drawn image", False, str(e))
+    GraphicsWindow.Hide()
 
 # ====================================================================
 # Summary

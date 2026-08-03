@@ -193,7 +193,7 @@ TextWindow.WriteLine(definition)
 GraphicsWindow.Wait()
 ```
 
-> **Important:** use `GraphicsWindow.Wait()` at the end of interactive programs. `Program.Delay()` blocks the event loop, so buttons, keys and mouse events won't fire during the sleep.
+> **Important:** use `GraphicsWindow.Wait()` at the end of interactive programs. `Program.Delay()` only waits a fixed time and does not keep the window open after the program ends; use `Wait()` to keep events firing until the user closes it.
 
 ## Demos
 
@@ -223,6 +223,7 @@ The `demos/` folder contains runnable examples covering all features:
 | 20 | `demos/20_extended_controls.py` | DropDown, Slider, ProgressBar, Table + events |
 | 21 | `demos/21_live_animation.py` | Animated shapes |
 | 22 | `demos/22_shape_transforms.py` | Interactive shape create/move/rotate/zoom playground |
+| 23 | `demos/23_getpixel_emboss.py` | Emboss filter: reads `demo.jpg` with GetPixel, redraws side by side |
 
 Run any demo with:
 

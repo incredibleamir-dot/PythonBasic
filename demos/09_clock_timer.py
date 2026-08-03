@@ -1,9 +1,9 @@
 """
 Demo 9: Clock + Timer - time and events
 
-Note: Timer.Tick callbacks run in a background thread.
-For a smoothly interactive Timer demo, pair it with GraphicsWindow
-(which runs its own event loop) instead of Program.Delay().
+Note: Timer.Tick callbacks are GUI-safe when a graphics window is open
+(they run on the window's event loop); pair the timer with GraphicsWindow
+so the window stays alive and keeps ticking.
 """
 
 import os

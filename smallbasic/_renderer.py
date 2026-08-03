@@ -33,6 +33,9 @@ class Renderer:
     _canvas: Any = None
     _resized_images: dict = {}
     _pixels: dict = {}
+    # Image placements in canvas coordinates: (name, x, y, w, h).  Kept so
+    # GetPixel can read the colour of a drawn image from its PIL source.
+    _image_placements: list = []
     _shown: bool = False
     _batch_count: int = 0
     _batch_dirty: bool = False
@@ -56,6 +59,7 @@ class Renderer:
         cls._shown = False
         cls._pixels.clear()
         cls._resized_images.clear()
+        cls._image_placements.clear()
 
     @classmethod
     def _sync_handles(cls) -> None:
@@ -102,6 +106,7 @@ class Renderer:
         cls._canvas = None
         cls._pixels.clear()
         cls._resized_images.clear()
+        cls._image_placements.clear()
         cls._shown = False
 
     # ── Batch support ──────────────────────────────────────────────
@@ -222,6 +227,10 @@ class Renderer:
         img = ImageList._backend_images.get(image_name)
         if img is None:
             return None
+        cls._image_placements.append(
+            (image_name, int(x), int(y),
+             ImageList.GetWidthOfImage(image_name),
+             ImageList.GetHeightOfImage(image_name)))
         cid = cls.backend().create_image(x, y, img, anchor="nw")
         cls.update()
         return cid
@@ -238,6 +247,8 @@ class Renderer:
             return None
         key = f"{image_name}_{width}x{height}"
         cls._resized_images[key] = resized
+        cls._image_placements.append(
+            (image_name, int(x), int(y), int(width), int(height)))
         cid = cls.backend().create_image(x, y, resized, anchor="nw")
         cls.update()
         return cid
@@ -253,6 +264,27 @@ class Renderer:
         color = cls._pixels.get((int(x), int(y)))
         if color is not None:
             return color
+        # Reading a drawn image: locate the top-most placement covering the
+        # point and sample its PIL source (scaled for resized images).
+        from smallbasic.imagelist import ImageList
+        for name, ix, iy, iw, ih in reversed(cls._image_placements):
+            if iw and ih and ix <= int(x) < ix + iw and iy <= int(y) < iy + ih:
+                src = ImageList._images.get(name)
+                if src is not None:
+                    try:
+                        sx = max(0, min(src.width - 1,
+                                        int((x - ix) / iw * src.width)))
+                        sy = max(0, min(src.height - 1,
+                                        int((y - iy) / ih * src.height)))
+                        pixel = src.getpixel((sx, sy))
+                        if isinstance(pixel, (tuple, list)):
+                            r, g, b = pixel[0], pixel[1], pixel[2]
+                        else:
+                            r = g = b = int(pixel)
+                        return f"#{r:02X}{g:02X}{b:02X}"
+                    except Exception:
+                        pass
+                break
         return cls.backend().get_pixel(x, y)
 
     # ── Canvas operations (used by Shapes / Turtle) ────────────────
@@ -263,6 +295,7 @@ class Renderer:
             cls._backend.clear()
         cls._pixels.clear()
         cls._resized_images.clear()
+        cls._image_placements.clear()
 
     @classmethod
     def delete(cls, cid: int) -> None:

@@ -503,6 +503,12 @@ GraphicsWindow.DrawResizedImage(img, 300, 50, 100, 80)   # scaled copy
 GraphicsWindow.ShowMessage("You win!", "Game Over")       # popup box
 ```
 
+`GetPixel` returns what `SetPixel` wrote, and it can also read back the pixels
+of a drawn image (scaled correctly for `DrawResizedImage`), so you can write
+image filters entirely in Small Basic. See
+`demos/23_getpixel_emboss.py` for a complete emboss filter that reads a photo
+pixel-by-pixel and redraws it side by side with the original.
+
 ### Clear and batch
 
 ```python
@@ -743,10 +749,13 @@ Timer.Pause()     # stop firing
 Timer.Resume()    # start again (interval unchanged)
 ```
 
-> **Note:** `Timer.Tick` handlers receive **no arguments**. The timer runs on a
-> background thread — keep handlers short and do not block them. In a graphics
-> program, pair the timer with `GraphicsWindow.Wait()` so the window (and its
-> event loop) stays alive.
+> **Note:** `Timer.Tick` handlers receive **no arguments**. When a graphics
+> window is open the timer fires on the Tk event loop (main thread), so it is
+> safe to touch `Shapes`, `Controls` and `GraphicsWindow` from the handler; in
+> pure-console programs it falls back to a background thread — keep those
+> handlers short. Re-assigning `Timer.Tick` restarts the timer immediately, and
+> `Timer.Stop()` cancels it. Pair the timer with `GraphicsWindow.Wait()` so the
+> window (and its event loop) stays alive.
 
 ---
 
@@ -1063,8 +1072,10 @@ This is the #1 "why does my window flash and close?" question. Here is the rule:
   blocks until the user closes the window, keeping everything alive.
 - `GraphicsWindow.Wait()` also runs tkinter's **event loop** — this is what makes
   keyboard/mouse/button/timer events fire. Without it, your handlers never run.
-- `Program.Delay(...)` sleeps the program; it does **not** keep a window open and
-  does **not** process events while sleeping. Use `Wait()` for that.
+- `Program.Delay(...)` waits a fixed time; it does **not** keep a window open on
+  its own (you still need `Wait()`). While a window is open it does keep the
+  event loop pumping, so timers and animations continue during the delay.
+  Use `Wait()` for a program that should stay alive until the user closes it.
 - `TextWindow.Pause()` only works when the console is visible
   (`TextWindow.Show()`), so call `Show()` before `Pause()`.
 

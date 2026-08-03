@@ -27,6 +27,10 @@ All notable changes to this project will be documented in this file.
   keeps a `_pixels` buffer that `SetPixel` fills and `GetPixel` reads, so a
   pixel set by `SetPixel` is always readable back (the canvas-level readback
   could not return a fill color for line-drawn pixels).
+- **`GraphicsWindow.GetPixel` can also read the pixels of a drawn image.** The
+  Renderer tracks image placements, so `GetPixel(x, y)` samples the image's PIL
+  source (scaled correctly for `DrawResizedImage`). This powers the new emboss
+  demo — see Added below.
 - **`GraphicsWindow.DrawResizedImage` can now shrink and use non-integer
   scales.** `ImageList._resize` resizes from the original PIL source (when
   available) instead of only integer-zooming.
@@ -56,9 +60,16 @@ All notable changes to this project will be documented in this file.
 - **New section 40 — regression tests for the review fixes:** MML parsing
   (octaves, lengths, tempo, rests, dots, lowercase), `Timer.Stop`/`Pause`/
   `Resume` and thread retirement, `SetPixel`/`GetPixel` round-trip,
-  `DrawResizedImage` shrink/grow, `pump_wait` after window destruction,
-  `TextWindow.Left`/`Top`/`Clear`, and the removed `_Shape.orig_coords`.
-  **472 / 472 checks pass.**
+  `GetPixel` reading drawn-image pixels, `DrawResizedImage` shrink/grow,
+  `pump_wait` after window destruction, `TextWindow.Left`/`Top`/`Clear`,
+  and the removed `_Shape.orig_coords`.
+  **474 / 474 checks pass.**
+
+### Added
+
+- **New demo** `demos/23_getpixel_emboss.py` — loads `demos/demo.jpg`, reads
+  every pixel back with `GraphicsWindow.GetPixel`, applies an emboss kernel,
+  and draws the original and the filtered image side by side.
 
 ### Removed
 

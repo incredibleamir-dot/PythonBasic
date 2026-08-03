@@ -192,7 +192,11 @@ Program execution control and command-line arguments.
 | `End()` | `() -> None` | Exit the program (`sys.exit(0)`) |
 | `GetArgument(index)` | `(int) -> str` | 1-based argument; returns `""` if out of range |
 
-> **⚠ Delay vs Wait:** `Program.Delay()` calls `time.sleep()`, which **blocks the main thread** and prevents the GraphicsWindow from processing events (mouse clicks, keyboard events, button presses). Use `Delay()` only for:
+> **⚠ Delay vs Wait:** `Program.Delay()` waits `ms` milliseconds. While a
+> GraphicsWindow is open it keeps the event loop pumping, so timers and
+> animations continue — but it does **not** keep the window open after the
+> program ends, and it never schedules the Keyboard events / button presses
+> the way a running window does. Use `Delay()` only for:
 > - TextWindow-only programs (no GraphicsWindow involved)
 > - Short pauses between automated drawing commands (where no user interaction is expected)
 >
@@ -428,7 +432,8 @@ the standard library (`ctypes` + `winmm`). No external decoders are required.
 | `IsPlaying` | property (read-only) | `True` while audio is playing (`bool`) |
 
 > **Note:** `PlayPosition` / `IsPlaying` are thread-safe — they are wall-clock based,
-> so they update correctly from `Timer` callbacks (which run on a background thread).
+> so they update correctly from `Timer` callbacks whether the timer runs on the
+> window's event loop or on a background thread.
 
 ```python
 # one-liner playback (any format)
@@ -451,7 +456,9 @@ Sound.PlayAndWait("song.wav")                 # play to the end (blocking)
 
 ## Timer
 
-Repeating interval timer with a background thread.
+Repeating interval timer. When a graphics window is open, callbacks fire on the
+window's event loop (GUI-safe); in pure-console programs the timer falls back
+to a background thread.
 
 ### Properties
 
@@ -466,8 +473,13 @@ Repeating interval timer with a background thread.
 |--------|-----------|-------------|
 | `Pause()` | `() -> None` | Pause tick events (thread stays alive) |
 | `Resume()` | `() -> None` | Resume tick events; starts thread if not alive |
+| `Stop()` | `() -> None` | Stop the timer entirely (cancels scheduled ticks, retires the thread) |
 
-**Note:** Tick callbacks run in a background daemon thread. Exceptions are logged via `logging.getLogger(__name__)`. Avoid blocking for long periods in callbacks.
+**Note:** When a graphics window is open, tick callbacks run on the window's
+event loop and are GUI-safe; in pure-console programs they run on a background
+daemon thread. Exceptions are logged via `logging.getLogger(__name__)`.
+Avoid blocking for long periods in callbacks. Re-assigning `Timer.Tick`
+restarts the timer immediately.
 
 ```python
 def on_tick():
@@ -598,7 +610,7 @@ Set these class-level attributes to callable functions. **Handlers take no argum
 | `MouseMove` | `() -> None` | Mouse moved |
 | `TextInput` | `() -> None` | Character input |
 
-> **Important:** For interactive GraphicsWindow programs (controls, events, mouse/keyboard), always use `GraphicsWindow.Wait()` at the end instead of `Program.Delay()`. `Program.Delay()` blocks the main thread and prevents tkinter from processing events, so button clicks, key presses, and mouse events will not fire during the delay.
+> **Important:** For interactive GraphicsWindow programs (controls, events, mouse/keyboard), always use `GraphicsWindow.Wait()` at the end instead of `Program.Delay()`. `Program.Delay()` only waits a fixed time and does not keep the window open after the program ends; `Wait()` keeps the window and its events alive until the user closes it.
 >
 > **Pattern for interactive demos:**
 > ```python
