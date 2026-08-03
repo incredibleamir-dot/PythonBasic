@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------
 # Python Small Basic
 # Purpose : Sound object - system sounds, beep tunes and audio file playback.
-# Version : 1.2.0
+# Version : 1.7.0
 # Author  : Amir Arshad
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------
@@ -12,6 +12,7 @@ import winsound
 import threading
 import time
 import os
+import re
 from smallbasic._utils import classproperty, _PropSetMeta
 
 
@@ -20,6 +21,19 @@ _mciSendString = _winmm.mciSendStringW
 _mciSendString.argtypes = (
     wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.UINT, wintypes.HWND)
 _mciSendString.restype = wintypes.UINT
+
+
+# Frequencies (Hz) of the notes in octave 4; other octaves are reached by
+# doubling/halving (2 ** (octave - 4)).
+_NOTE_BASE = {
+    "C": 261.63, "C#": 277.18, "D": 293.66, "D#": 311.13,
+    "E": 329.63, "F": 349.23, "F#": 369.99, "G": 392.00,
+    "G#": 415.30, "A": 440.00, "A#": 466.16, "B": 493.88,
+}
+_NOTE_ACCIDENTAL = {"#": "#", "+": "#", "b": "b", "-": "b"}
+
+_MML_TOKEN = re.compile(
+    r"[A-Ga-g][#+b-]?\d*\.?|O\d+|L\d+|T\d+|[PpRr]\d*\.?|\.")
 
 
 class Sound(metaclass=_PropSetMeta):
@@ -100,36 +114,83 @@ class Sound(metaclass=_PropSetMeta):
         winsound.PlaySound("SystemHand", winsound.SND_ALIAS | 0)
 
     @classmethod
+    def _parse_music(cls, notes: str) -> list:
+        """
+        Parses a Music Macro Language (MML) subset into ``(freq, duration_ms)``
+        pairs; a frequency of ``0`` marks a rest.
+
+        Supported directives:
+          - ``O<octave>``  — set the current octave (default 4)
+          - ``L<length>``  — default note length (default 4 = quarter note)
+          - ``T<tempo>``   — tempo in quarter notes per minute (default 120)
+          - ``P<n>`` / ``R<n>`` — rest of the given length
+          - note letters ``A-G`` / ``a-g`` (lower-case plays one octave up),
+            optional accidentals (``#`` ``+`` ``b`` ``-``), optional length
+            digits (``4`` = quarter, ``8`` = eighth, ...) and a trailing ``.``
+            for a dotted note.
+
+        Examples:
+            _parse_music("C4")                 -> [(262, 500.0)]
+            _parse_music("O5 C8 C8 G8 G8")     -> Twinkle Twinkle in octave 5
+            _parse_music("T120 C4 C4 G4 G4")   -> quarter notes at 120 BPM
+        """
+        octave, length, tempo = 4, 4, 120
+        out: list = []
+        for token in _MML_TOKEN.findall(str(notes)):
+            if token in ("", "."):
+                if token == "." and out:
+                    freq, dur = out[-1]
+                    out[-1] = (freq, dur * 1.5)
+                continue
+            if token[0] in "Oo":
+                octave = int(token[1:])
+                continue
+            if token[0] in "Ll":
+                length = int(token[1:])
+                continue
+            if token[0] in "Tt":
+                tempo = int(token[1:])
+                continue
+            if token[0] in "PpRr":
+                rest = int(token[1:]) if token[1:].isdigit() else length
+                dur = 240000.0 / (tempo * rest)
+                if token.endswith("."):
+                    dur *= 1.5
+                out.append((0, dur))
+                continue
+            # Note token: letter [accidental] [length] [dot]
+            m = re.match(r"([A-Ga-g])([#+b-]?)(\d*)(\.?)", token)
+            if not m:
+                continue
+            letter, acc, length_str, dot = m.groups()
+            key = letter.upper() + _NOTE_ACCIDENTAL.get(acc, "")
+            base = _NOTE_BASE.get(key, _NOTE_BASE.get(letter.upper(), 440.0))
+            note_octave = octave + (1 if letter.islower() else 0)
+            freq = int(round(base * (2 ** (note_octave - 4))))
+            note_len = int(length_str) if length_str else length
+            if note_len <= 0:
+                continue
+            dur = 240000.0 / (tempo * note_len)
+            if dot:
+                dur *= 1.5
+            out.append((freq, dur))
+        return out
+
+    @classmethod
     def PlayMusic(cls, notes: str) -> None:
         """
         Plays musical notes using the system beep.
-        Note format is a simplified subset of Music Macro Language.
+        Note format is a subset of Music Macro Language — see ``_parse_music``.
 
         Args:
-            notes: A string of musical notes.
+            notes: A string of musical notes, e.g. "O5 C8 C8 G8 G8 A8 A8 G4".
         """
         def _play():
-            parts = notes.split()
-            i = 0
-            while i < len(parts):
-                note = parts[i]
-                duration = 200
-                freq = 440
-                if i + 1 < len(parts) and parts[i + 1].isdigit():
-                    octave = int(parts[i + 1])
-                    duration = max(50, 600 // octave)
-                    i += 1
-                note_map = {
-                    'C': 262, 'D': 294, 'E': 330, 'F': 349,
-                    'G': 392, 'A': 440, 'B': 494,
-                    'c': 523, 'd': 587, 'e': 659, 'f': 698,
-                    'g': 784, 'a': 880, 'b': 988
-                }
-                base = note[0]
-                if base in note_map:
-                    freq = note_map[base]
-                winsound.Beep(freq, duration)
-                i += 1
+            for freq, duration in cls._parse_music(notes):
+                if freq > 0:
+                    winsound.Beep(freq, max(10, int(round(duration))))
+                else:
+                    time.sleep(max(0.005, duration / 1000.0))
         threading.Thread(target=_play, daemon=True).start()
 
     # ------------------------------------------------------------------ #

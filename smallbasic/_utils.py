@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------
 # Python Small Basic
 # Purpose : Shared class helpers - classproperty descriptor and property-set metaclass.
-# Version : 1.2.0
+# Version : 1.7.0
 # Author  : Amir Arshad
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------

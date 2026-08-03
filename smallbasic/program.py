@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------
 # Python Small Basic
 # Purpose : Program object - program control, delays and command-line arguments.
-# Version : 1.2.0
+# Version : 1.7.0
 # Author  : Amir Arshad
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------
@@ -47,11 +47,16 @@ class Program:
     def Delay(cls, milliseconds: int) -> None:
         """
         Pauses the program for the specified duration.
-        
+
+        If a graphics window is open the event loop is kept pumping for the
+        duration, so the window stays responsive and Tk-scheduled work
+        (e.g. ``Timer.Tick`` callbacks) keeps running.
+
         Args:
             milliseconds: The number of milliseconds to pause.
         """
-        time.sleep(milliseconds / 1000.0)
+        from smallbasic._renderer import Renderer
+        Renderer.pump_wait(max(0, int(milliseconds)))
 
     @classmethod
     def GetArgument(cls, index: int) -> str:

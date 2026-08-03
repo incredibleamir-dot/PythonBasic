@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------
 # Python Small Basic
 # Purpose : Turtle object - Logo-style turtle graphics on the graphics window.
-# Version : 1.2.0
+# Version : 1.7.0
 # Author  : Amir Arshad
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------

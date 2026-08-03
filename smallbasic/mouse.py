@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------
 # Python Small Basic
 # Purpose : Mouse object - cursor position, button state and cursor visibility.
-# Version : 1.2.0
+# Version : 1.7.0
 # Author  : Amir Arshad
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------

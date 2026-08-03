@@ -1,12 +1,13 @@
 # --------------------------------------------------------------------------
 # Python Small Basic
 # Purpose : TextWindow object - console text input and output.
-# Version : 1.2.0
+# Version : 1.7.0
 # Author  : Amir Arshad
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------
 
 import sys
+import os
 import ctypes
 from smallbasic._utils import classproperty, _PropSetMeta
 
@@ -50,6 +51,46 @@ def _set_cursor_position(x, y):
         std_handle = ctypes.windll.kernel32.GetStdHandle(-11)
         coord = (int(x) & 0xFFFF) | ((int(y) & 0xFFFF) << 16)
         ctypes.windll.kernel32.SetConsoleCursorPosition(std_handle, coord)
+    except Exception:
+        pass
+
+
+def _set_window_position(x, y):
+    """Move the console window to screen pixel (x, y); no-op on failure."""
+    try:
+        hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+        if not hwnd:
+            return
+        SWP_NOSIZE = 0x0001
+        SWP_NOZORDER = 0x0004
+        ctypes.windll.user32.SetWindowPos(
+            hwnd, 0, int(x), int(y), 0, 0, SWP_NOSIZE | SWP_NOZORDER)
+    except Exception:
+        pass
+
+
+def _clear_console():
+    """Clear the console window without spawning a subprocess."""
+    try:
+        std_handle = ctypes.windll.kernel32.GetStdHandle(-11)
+        buf = _CONSOLE_SCREEN_BUFFER_INFO()
+        ctypes.windll.kernel32.GetConsoleScreenBufferInfo(
+            std_handle, ctypes.byref(buf))
+        width = int(buf.dwSize.X)
+        height = int(buf.srWindow.Bottom) - int(buf.srWindow.Top) + 1
+        origin_x = 0
+        origin_y = int(buf.srWindow.Top)
+        n_cells = width * height
+        written = ctypes.c_ulong(0)
+        ctypes.windll.kernel32.FillConsoleOutputCharacterW(
+            std_handle, " ", n_cells,
+            (origin_x & 0xFFFF) | ((origin_y & 0xFFFF) << 16),
+            ctypes.byref(written))
+        ctypes.windll.kernel32.FillConsoleOutputAttribute(
+            std_handle, buf.wAttributes, n_cells,
+            (origin_x & 0xFFFF) | ((origin_y & 0xFFFF) << 16),
+            ctypes.byref(written))
+        _set_cursor_position(0, origin_y)
     except Exception:
         pass
 
@@ -121,11 +162,13 @@ class TextWindow(metaclass=_PropSetMeta):
 
     @classmethod
     def Clear(cls) -> None:
-        try:
-            import os
-            os.system("cls" if os.name == "nt" else "clear")
-        except Exception:
-            print("\n" * 50)
+        if os.name == "nt":
+            _clear_console()
+        else:
+            try:
+                os.system("clear")
+            except Exception:
+                print("\n" * 50)
 
     @classmethod
     def Pause(cls) -> None:
@@ -221,6 +264,7 @@ class TextWindow(metaclass=_PropSetMeta):
     @Left.setter
     def Left(cls, value: int) -> None:
         _ConsoleWindow._left = int(value)
+        _set_window_position(_ConsoleWindow._left, _ConsoleWindow._top)
 
     @classproperty
     def Top(cls) -> int:
@@ -230,6 +274,7 @@ class TextWindow(metaclass=_PropSetMeta):
     @Top.setter
     def Top(cls, value: int) -> None:
         _ConsoleWindow._top = int(value)
+        _set_window_position(_ConsoleWindow._left, _ConsoleWindow._top)
 
     @classproperty
     def Title(cls) -> str:

@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------
 # Python Small Basic
-# Purpose : Renderer facade - object registry, batching and all high-level drawing operations.
-# Version : 1.2.0
+# Purpose : Renderer facade - batching, display updates and all high-level drawing operations.
+# Version : 1.7.0
 # Author  : Amir Arshad
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------
@@ -9,9 +9,9 @@
 """
 Internal Renderer — facade over the active graphics backend.
 
-The Renderer owns the object registry, the batch/update machinery and
-the drawing high-level operations.  All backend-specific window and
-canvas interaction is delegated to the tkinter backend
+The Renderer owns the batch/update machinery and the drawing
+high-level operations.  All backend-specific window and canvas
+interaction is delegated to the tkinter backend
 (see ``smallbasic._backends``).
 
 No other module should call backend/Canvas methods directly; use the
@@ -31,8 +31,8 @@ class Renderer:
     _backend: Optional[Backend] = None
     _root: Any = None
     _canvas: Any = None
-    _objects: dict = {}
     _resized_images: dict = {}
+    _pixels: dict = {}
     _shown: bool = False
     _batch_count: int = 0
     _batch_dirty: bool = False
@@ -54,7 +54,7 @@ class Renderer:
         cls._root = None
         cls._canvas = None
         cls._shown = False
-        cls._objects.clear()
+        cls._pixels.clear()
         cls._resized_images.clear()
 
     @classmethod
@@ -100,7 +100,7 @@ class Renderer:
             cls._backend.destroy()
         cls._root = None
         cls._canvas = None
-        cls._objects.clear()
+        cls._pixels.clear()
         cls._resized_images.clear()
         cls._shown = False
 
@@ -155,14 +155,12 @@ class Renderer:
         s = GraphicsState
         cid = cls.backend().create_rectangle(
             x, y, w, h, outline=s.pen_color, width=s.pen_width, fill="")
-        cls._register(cid, "rectangle")
         cls.update()
         return cid
 
     @classmethod
     def fill_rectangle(cls, x: int, y: int, w: int, h: int) -> Optional[int]:
         cid = cls.backend().create_rectangle(x, y, w, h, **cls._style())
-        cls._register(cid, "rectangle")
         cls.update()
         return cid
 
@@ -171,14 +169,12 @@ class Renderer:
         s = GraphicsState
         cid = cls.backend().create_oval(x, y, w, h, outline=s.pen_color,
                                         width=s.pen_width, fill="")
-        cls._register(cid, "ellipse")
         cls.update()
         return cid
 
     @classmethod
     def fill_ellipse(cls, x: int, y: int, w: int, h: int) -> Optional[int]:
         cid = cls.backend().create_oval(x, y, w, h, **cls._style())
-        cls._register(cid, "ellipse")
         cls.update()
         return cid
 
@@ -189,7 +185,6 @@ class Renderer:
         cid = cls.backend().create_polygon(
             (x1, y1, x2, y2, x3, y3), outline=s.pen_color,
             width=s.pen_width, fill="")
-        cls._register(cid, "polygon")
         cls.update()
         return cid
 
@@ -198,7 +193,6 @@ class Renderer:
                       x3: int, y3: int) -> Optional[int]:
         cid = cls.backend().create_polygon(
             (x1, y1, x2, y2, x3, y3), **cls._style())
-        cls._register(cid, "polygon")
         cls.update()
         return cid
 
@@ -207,7 +201,6 @@ class Renderer:
         s = GraphicsState
         cid = cls.backend().create_line(
             (x1, y1, x2, y2), fill=s.pen_color, width=s.pen_width)
-        cls._register(cid, "line")
         cls.update()
         return cid
 
@@ -220,7 +213,6 @@ class Renderer:
         font = (s.font_name, s.font_size, weight, slant)
         cid = cls.backend().create_text(
             x, y, text, anchor=anchor, font=font, fill=s.pen_color, width=width)
-        cls._register(cid, "text")
         cls.update()
         return cid
 
@@ -231,7 +223,6 @@ class Renderer:
         if img is None:
             return None
         cid = cls.backend().create_image(x, y, img, anchor="nw")
-        cls._register(cid, "image")
         cls.update()
         return cid
 
@@ -242,23 +233,26 @@ class Renderer:
         img = ImageList._backend_images.get(image_name)
         if img is None:
             return None
-        resized = ImageList._resize(img, width, height)
+        resized = ImageList._resize(image_name, img, width, height)
         if resized is None:
             return None
         key = f"{image_name}_{width}x{height}"
         cls._resized_images[key] = resized
         cid = cls.backend().create_image(x, y, resized, anchor="nw")
-        cls._register(cid, "image")
         cls.update()
         return cid
 
     @classmethod
     def set_pixel(cls, x: int, y: int, color: str) -> None:
+        cls._pixels[(int(x), int(y))] = color
         cls.backend().create_pixel(x, y, color)
         cls.update()
 
     @classmethod
     def get_pixel(cls, x: int, y: int) -> str:
+        color = cls._pixels.get((int(x), int(y)))
+        if color is not None:
+            return color
         return cls.backend().get_pixel(x, y)
 
     # ── Canvas operations (used by Shapes / Turtle) ────────────────
@@ -267,14 +261,13 @@ class Renderer:
     def clear(cls):
         if cls._backend:
             cls._backend.clear()
-        cls._objects.clear()
+        cls._pixels.clear()
         cls._resized_images.clear()
 
     @classmethod
     def delete(cls, cid: int) -> None:
         if cls._backend:
             cls._backend.delete(cid)
-        cls._objects.pop(cid, None)
 
     @classmethod
     def coords(cls, cid: int, *args) -> Any:
@@ -301,11 +294,6 @@ class Renderer:
         return cls.backend().bbox(cid)
 
     # Low-level item creation used by Shapes / Turtle.
-    @classmethod
-    def create_rectangle(cls, x, y, w, h, outline="", width=0, fill=""):
-        return cls.backend().create_rectangle(x, y, w, h, outline=outline,
-                                              width=width, fill=fill)
-
     @classmethod
     def create_oval(cls, x0, y0, x1, y1, fill="Red", outline="Black", width=2):
         return cls.backend().create_oval(x0, y0, x1 - x0, y1 - y0,
@@ -338,21 +326,18 @@ class Renderer:
         Replaces bare ``time.sleep`` in animation loops: pumps Tcl
         events during the wait (so a window drag keeps the animation
         advancing).  Preserves blocking semantics and total duration.
+        Stops pumping early if the window has been destroyed.
         """
-        if cls._backend is None:
+        if cls._backend is None or not getattr(cls._backend, "_root", None):
             time.sleep(delay_ms / 1000.0)
             return
         end = time.time() + delay_ms / 1000.0
         while time.time() < end:
-            cls._backend.update()
-            time.sleep(0.002)
-
-    # ── Object Registry ────────────────────────────────────────────
-
-    @classmethod
-    def _register(cls, cid: int, kind: str = "", **extra):
-        if cid is not None:
-            cls._objects[cid] = {"type": kind, **extra}
+            try:
+                cls._backend.update()
+            except Exception:
+                break  # window was closed -> stop pumping
+            time.sleep(0.005)
 
     # ── Utility ────────────────────────────────────────────────────
 

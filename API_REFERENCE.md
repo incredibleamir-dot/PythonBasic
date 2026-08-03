@@ -1,6 +1,6 @@
 # Python Small Basic — API Reference Guide
 
-> **Version 1.6.1** | Windows-only (uses `winsound`, `ctypes`, `tkinter`)
+> **Version 1.7.0** | Windows-only (uses `winsound`, `ctypes`, `tkinter`)
 
 ---
 

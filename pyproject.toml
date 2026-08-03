@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "python-smallbasic"
-version = "1.6.1"
+version = "1.7.0"
 description = "A Python library inspired by Microsoft Small Basic for teaching programming to beginners"
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { file = "LICENSE" }

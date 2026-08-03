@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------
 # Python Small Basic
 # Purpose : ImageList object - loads and stores images in memory for drawing.
-# Version : 1.2.0
+# Version : 1.7.0
 # Author  : Amir Arshad
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------
@@ -47,7 +47,21 @@ class ImageList:
         return name
 
     @classmethod
-    def _resize(cls, handle, width: int, height: int):
+    def _resize(cls, name: str, handle, width: int, height: int):
+        """Resize an image to the exact target size.
+
+        Uses the original PIL source when available so the resize is
+        lossless-accurate and works at any (including non-integer and
+        shrink) scale.  Otherwise falls back to the backend's integer
+        zoom/subsample approximation.
+        """
+        src = cls._images.get(name)
+        if src is not None:
+            try:
+                resized = src.resize((max(1, int(width)), max(1, int(height))))
+                return Renderer.backend().load_image(resized)
+            except Exception:
+                pass
         try:
             return Renderer.backend().resize_image(handle, width, height)
         except Exception:

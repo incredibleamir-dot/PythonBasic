@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------
 # Python Small Basic
 # Purpose : tkinter graphics backend - window, canvas, drawing and control primitives.
-# Version : 1.2.0
+# Version : 1.7.0
 # Author  : Amir Arshad
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------
@@ -344,10 +344,15 @@ class TkBackend(Backend):
         return ImageTk.PhotoImage(pil_image)
 
     def resize_image(self, handle, width, height):
-        return handle.zoom(
-            max(1, width // max(handle.width(), 1)),
-            max(1, height // max(handle.height(), 1)),
-        )
+        src_w = max(handle.width(), 1)
+        src_h = max(handle.height(), 1)
+        tw = max(1, int(width))
+        th = max(1, int(height))
+        if tw <= src_w and th <= src_h:
+            # shrink: downsample by an integer factor via subsample
+            return handle.subsample(max(1, src_w // tw), max(1, src_h // th))
+        # grow: upscale by an integer factor via zoom
+        return handle.zoom(max(1, tw // src_w), max(1, th // src_h))
 
     def clear(self):
         if self._canvas:

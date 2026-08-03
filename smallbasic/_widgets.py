@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------
 # Python Small Basic
 # Purpose : tkinter widget helpers - buttons, text boxes and extended widgets.
-# Version : 1.2.0
+# Version : 1.7.0
 # --------------------------------------------------------------------------
 
 """

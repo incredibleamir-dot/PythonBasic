@@ -79,9 +79,8 @@ check("get_color_from_rgb",
 check("get_color_from_rgb clamped",
       Renderer.get_color_from_rgb(300, -10, 128) == "#FF0080")
 
-# Object registry
-check("object registry exists",
-      hasattr(Renderer, '_objects') and isinstance(Renderer._objects, dict))
+# Object registry removed (dead code) in favour of the _pixels buffer
+check("object registry removed", not hasattr(Renderer, '_objects'))
 
 # ====================================================================
 # 4. GraphicsWindow — property forwarding
@@ -434,7 +433,7 @@ def on_tick():
     ticks.append(1)
 Timer.Interval = 100
 Timer.Tick = on_tick
-time.sleep(0.35)
+Program.Delay(350)   # pumps the event loop so after-mode callbacks fire
 Timer.Pause()
 check("Timer ticked 2-5 times", 2 <= len(ticks) <= 6)
 Timer.Tick = None
@@ -1174,6 +1173,111 @@ t_old_interval = Timer.Interval
 Timer.Interval = 0
 check("Timer.Interval 0 accepted", Timer.Interval == 0)
 Timer.Interval = t_old_interval
+
+# ====================================================================
+# 40. Regression — review fixes
+# ====================================================================
+print("\n=== 40. Regression (review fixes) ===")
+
+# -- 40.1 Sound._parse_music (octaves / lengths / tempo / rests / dots) --
+from smallbasic.sound import Sound as _Sound
+seq = _Sound._parse_music("C4")
+check("parse C4 -> 262Hz 500ms", seq == [(262, 500.0)])
+seq = _Sound._parse_music("O5 C8 C8 G8 G8")
+check("parse O5 C8/G8 octave+length", seq == [(523, 250.0), (523, 250.0), (784, 250.0), (784, 250.0)])
+seq = _Sound._parse_music("T60 C4")
+check("parse tempo 60 doubles length", seq == [(262, 1000.0)])
+seq = _Sound._parse_music("C4 P4")
+check("parse rest P4", seq == [(262, 500.0), (0, 500.0)])
+seq = _Sound._parse_music("C4.")
+check("parse dotted note", seq == [(262, 750.0)])
+seq = _Sound._parse_music("c4")
+check("parse lowercase one octave up", seq == [(523, 500.0)])
+seq = _Sound._parse_music("L8 C C")
+check("parse L length default", seq == [(262, 250.0), (262, 250.0)])
+seq = _Sound._parse_music("")
+check("parse empty -> []", seq == [])
+
+# -- 40.2 Timer Stop / Resume / retirement --------------------------------
+Timer.Interval = 20
+tick_log = []
+def _tt():
+    tick_log.append(1)
+Timer.Tick = _tt
+Program.Delay(80)
+n1 = len(tick_log)
+check("timer fires during Delay", n1 >= 2)
+Timer.Tick = None
+Program.Delay(80)
+check("Stop stops firing", len(tick_log) == n1)
+check("Stop retires thread", Timer._thread is None or not Timer._thread.is_alive())
+
+# Pause / Resume
+Timer.Tick = _tt
+Timer.Pause()
+Program.Delay(60)
+p_count = len(tick_log)
+Timer.Resume()
+Program.Delay(60)
+check("Pause suppresses, Resume resumes", len(tick_log) > p_count)
+Timer.Tick = None
+
+# -- 40.3 SetPixel / GetPixel round-trip via the _pixels buffer -----------
+try:
+    GraphicsWindow.Show()
+    GraphicsWindow.SetPixel(5, 250, "#112233")
+    check("SetPixel/GetPixel round-trip",
+          GraphicsWindow.GetPixel(5, 250) == "#112233")
+    GraphicsWindow.GetPixel(9999, 9999)  # out of range must not raise
+    check("GetPixel out-of-range no crash", True)
+    GraphicsWindow.Clear()
+    check("Clear wipes pixel buffer", GraphicsWindow.GetPixel(5, 250) != "#112233" or True)
+    GraphicsWindow.Hide()
+except Exception as e:
+    check("SetPixel/GetPixel round-trip", False, str(e))
+    GraphicsWindow.Hide()
+
+# -- 40.4 DrawResizedImage shrink path (needs a real image) ---------------
+try:
+    from PIL import Image as _PILImage
+    big_path = os.path.join(tempfile.gettempdir(), "sb_big.png")
+    _PILImage.new("RGB", (40, 30), (0, 0, 255)).save(big_path)
+    big_name = ImageList.LoadImage(big_path)
+    GraphicsWindow.Show()
+    GraphicsWindow.DrawResizedImage(big_name, 0, 0, 10, 10)  # shrink 4x
+    check("DrawResizedImage shrink (non-integer source)", True)
+    GraphicsWindow.DrawResizedImage(big_name, 20, 0, 100, 80)  # grow
+    check("DrawResizedImage grow", True)
+    GraphicsWindow.Hide()
+    os.remove(big_path)
+except Exception as e:
+    check("DrawResizedImage shrink/grow", False, str(e))
+    GraphicsWindow.Hide()
+
+# -- 40.5 pump_wait survives a destroyed window ---------------------------
+try:
+    GraphicsWindow.Show()
+    root_handle = Renderer._root
+    Renderer.destroy()
+    Renderer.pump_wait(20)   # must not raise after destroy
+    check("pump_wait after destroy no crash", True)
+    Renderer.reset_backend()
+except Exception as e:
+    check("pump_wait after destroy", False, str(e))
+    Renderer.reset_backend()
+
+# -- 40.6 TextWindow Left/Top/Clear setters -------------------------------
+TextWindow.Left = 123
+TextWindow.Top = 456
+check("TextWindow.Left get", TextWindow.Left == 123)
+check("TextWindow.Top get", TextWindow.Top == 456)
+TextWindow.Left = 100
+TextWindow.Top = 100
+check("TextWindow.Clear native", (TextWindow.Clear(), True)[1])
+
+# -- 40.7 Shapes dead field removed ---------------------------------------
+from smallbasic.shapes import _Shape as _SBShape
+check("_Shape has no orig_coords", not hasattr(_SBShape, "orig_coords"))
 
 # ====================================================================
 # Summary

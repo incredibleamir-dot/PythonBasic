@@ -1,7 +1,7 @@
 # --------------------------------------------------------------------------
 # Python Small Basic
 # Purpose : Shapes object - add, move, rotate, zoom, hide and animate shapes.
-# Version : 1.2.0
+# Version : 1.7.0
 # Author  : Amir Arshad
 # Email   : incredibleamir@gmail.com
 # --------------------------------------------------------------------------
@@ -20,12 +20,10 @@ from smallbasic._renderer import Renderer
 
 class _Shape:
     """Represents a shape on the graphics window."""
-    def __init__(self, name: str, canvas_id: int, shape_type: str = "",
-                 coords: tuple = ()):
+    def __init__(self, name: str, canvas_id: int, shape_type: str = ""):
         self.name = name
         self.canvas_id = canvas_id
         self.shape_type = shape_type
-        self.orig_coords = coords
         self.x = 0
         self.y = 0
         self.angle = 0
@@ -77,7 +75,7 @@ class Shapes:
         # corner points would only resize the bounding box, never rotate it.
         coords = (0, 0, width, 0, width, height, 0, height)
         cid = Renderer.create_polygon(coords, **cls._default_style())
-        shape = _Shape("", cid, "polygon", coords)
+        shape = _Shape("", cid, "polygon")
         return cls._add_shape(shape)
 
     @classmethod
@@ -85,7 +83,7 @@ class Shapes:
         Renderer.ensure()
         cid = Renderer.create_oval(0, 0, width, height,
                                    **cls._default_style())
-        shape = _Shape("", cid, "ellipse", (0, 0, width, height))
+        shape = _Shape("", cid, "ellipse")
         return cls._add_shape(shape)
 
     @classmethod
@@ -95,7 +93,7 @@ class Shapes:
         coords = (x1, y1, x2, y2, x3, y3)
         cid = Renderer.create_polygon(coords, fill="",
                                       **cls._default_style())
-        shape = _Shape("", cid, "polygon", coords)
+        shape = _Shape("", cid, "polygon")
         return cls._add_shape(shape)
 
     @classmethod
@@ -105,7 +103,7 @@ class Shapes:
         cid = Renderer.create_line(x1, y1, x2, y2,
                                    fill=GraphicsState.pen_color,
                                    width=GraphicsState.pen_width)
-        shape = _Shape("", cid, "line", coords)
+        shape = _Shape("", cid, "line")
         shape.x, shape.y = x1, y1
         return cls._add_shape(shape)
 
@@ -115,7 +113,7 @@ class Shapes:
         from smallbasic.imagelist import ImageList
         img = ImageList._backend_images.get(image_name)
         cid = Renderer.create_image(0, 0, img, anchor="nw") if img else None
-        shape = _Shape("", cid, "image", (0, 0))
+        shape = _Shape("", cid, "image")
         return cls._add_shape(shape)
 
     @classmethod
@@ -128,7 +126,7 @@ class Shapes:
             0, 0, text, anchor="nw",
             font=(s.font_name, s.font_size, weight, slant),
             fill=s.pen_color)
-        shape = _Shape("", cid, "text", (0, 0))
+        shape = _Shape("", cid, "text")
         return cls._add_shape(shape)
 
     @classmethod
@@ -164,12 +162,6 @@ class Shapes:
                     Renderer.coords(shape.canvas_id, *new_coords)
             Renderer.update()
         shape.x, shape.y = x, y
-        # Keep the stored coords in sync with the canvas so a subsequent
-        # Rotate() rotates around the shape's *current* position, not the
-        # original one it was added at.
-        current = Renderer.coords(shape.canvas_id) if shape.canvas_id else None
-        if current:
-            shape.orig_coords = tuple(current)
 
     @classmethod
     def Rotate(cls, shape_name: str, angle: int) -> None:
@@ -193,7 +185,6 @@ class Shapes:
                 ny = dx * math.sin(rad) + dy * math.cos(rad) + cy
                 new_coords.extend([nx, ny])
             Renderer.coords(shape.canvas_id, *new_coords)
-            shape.orig_coords = tuple(new_coords)
             Renderer.update()
 
     @classmethod
@@ -215,11 +206,14 @@ class Shapes:
         dx = (x - start_x) / steps
         dy = (y - start_y) / steps
         for i in range(steps + 1):
-            cx = start_x + dx * i
-            cy = start_y + dy * i
-            Renderer.begin_batch()
-            cls.Move(shape_name, int(cx), int(cy))
-            Renderer.end_batch()
+            try:
+                cx = start_x + dx * i
+                cy = start_y + dy * i
+                Renderer.begin_batch()
+                cls.Move(shape_name, int(cx), int(cy))
+                Renderer.end_batch()
+            except Exception:
+                break  # window was closed -> stop animating
             if i < steps:
                 Renderer.pump_wait(16)
 

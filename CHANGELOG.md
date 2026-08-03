@@ -2,6 +2,70 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-08-03
+
+### Fixed
+
+- **`Timer` can now be stopped and re-started safely.** The old thread-based
+  timer had no `Stop()`, leaked its thread after the first use, and fired
+  `Tick` callbacks on a background thread even when a graphics window was
+  open — which made GUI-touching callbacks (`Shapes.SetText`, ...) crash with
+  Tcl errors in `demos/13_wav_player.py`. The new `Timer`:
+  - runs on the Tk event loop (main thread, GUI-safe) whenever a window is
+    open, and falls back to a daemon background thread in pure-console
+    programs (e.g. `demos/99_all_features.py`, which ticks before any window
+    exists);
+  - adds `Timer.Stop()` (cancels pending callbacks / retires the thread) and
+    working `Pause()` / `Resume()`;
+  - clears the paused latch when `Timer.Tick` is re-assigned, so a fresh
+    handler starts immediately.
+- **`Sound.PlayMusic` no longer ignores note lengths and octaves.** Notes are
+  parsed as a Music Macro Language subset (`O`/`L`/`T` directives, accidentals,
+  dotted notes, lower-case-octave-up, `P`/`R` rests) into accurate
+  `(frequency, duration)` pairs played with `winsound.Beep`.
+- **`GraphicsWindow.GetPixel` now returns what `SetPixel` wrote.** The Renderer
+  keeps a `_pixels` buffer that `SetPixel` fills and `GetPixel` reads, so a
+  pixel set by `SetPixel` is always readable back (the canvas-level readback
+  could not return a fill color for line-drawn pixels).
+- **`GraphicsWindow.DrawResizedImage` can now shrink and use non-integer
+  scales.** `ImageList._resize` resizes from the original PIL source (when
+  available) instead of only integer-zooming.
+- **`TextWindow.Left` / `TextWindow.Top` actually move the console window** via
+  `SetWindowPos` instead of being no-ops.
+- **`TextWindow.Clear` is native** — it clears the console buffer through
+  `FillConsoleOutputCharacterW` instead of spawning `os.system("cls")`.
+- **`Shapes.Animate` / `Turtle.Move` stop cleanly if the window is closed**
+  mid-animation instead of raising from a destroyed canvas.
+- **`Program.Delay` keeps the event loop pumping** while a window is open, so
+  Tk-scheduled work (including `Timer.Tick` callbacks) continues during the
+  delay and the window stays responsive.
+
+### Changed
+
+- **Removed the dead `Renderer._objects` registry.** The Renderer no longer
+  tracks a global canvas-id registry that nothing read.
+- **Removed the unused `Renderer.create_rectangle` wrapper** and the dead
+  `_Shape.orig_coords` bookkeeping in `Shapes`.
+- Module version headers synced to `1.7.0` (previously stale `1.2.0`).
+
+### Tests
+
+- Suite updated for the removed `Renderer._objects` registry and the Timer
+  change (ticks are now driven through the event loop, so the test pumps via
+  `Program.Delay`).
+- **New section 40 — regression tests for the review fixes:** MML parsing
+  (octaves, lengths, tempo, rests, dots, lowercase), `Timer.Stop`/`Pause`/
+  `Resume` and thread retirement, `SetPixel`/`GetPixel` round-trip,
+  `DrawResizedImage` shrink/grow, `pump_wait` after window destruction,
+  `TextWindow.Left`/`Top`/`Clear`, and the removed `_Shape.orig_coords`.
+  **472 / 472 checks pass.**
+
+### Removed
+
+- Historical changelog entries referenced `demos/15_batch_rendering.py` and
+  `responsive_demo.py`, which no longer exist; demo 15 is now
+  `demos/15_file_folder_picker.py`.
+
 ## [1.6.1] - 2026-08-03
 
 ### Fixed
